@@ -1,6 +1,6 @@
 # Break Mode
 
-A small, offline Android app that does what Moto Unplugged does — a **timed break with only the apps
+A small, offline Android app — a **timed break with only the apps
 you allow** — but on any Android phone, and without any of the invasive machinery that a "phone
 locker" app needs.
 
