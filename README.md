@@ -25,19 +25,7 @@ Android 8.0+ (API 26), 5.6 MB, no account, no internet permission.
 | On-device summary | Today's minutes and a seven-day bar chart, kept locally. Nothing is ever uploaded. |
 
 A break is **always exitable** — that is deliberate. The app is a nudge and a nicer place to be, not
-a lock.
-
-## Why it does not block other apps
-
-Moto Unplugged is documented by Motorola as a *session* with chosen apps and chosen interruptions; it
-is not a parental control. Copying that honestly means the restriction is **voluntary**: this app
-shows its own full-screen session and hides everything else from *its* surface. It never tries to
-prevent you from pressing Home.
-
-Trying to be stricter would be neither safe nor shippable: an `AccessibilityService` or a full-screen
-overlay used to keep you out of other apps is restricted by Google Play, `QUERY_ALL_PACKAGES` needs a
-special declaration, and lock-task/kiosk mode is a managed-device feature. The choices below are the
-ones a normal app is allowed to make.
+a lock
 
 ## Permissions — the whole list
 
