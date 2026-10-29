@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Permissions are intentionally minimal.
+
+      POST_NOTIFICATIONS: shows the ongoing break status and the "break complete" notice.
+      ACCESS_NOTIFICATION_POLICY: optional, user-granted special access that lets the app
+      silence interruptions for the duration of a break.
+
+      There is deliberately NO android.permission.INTERNET here. Without it the app cannot
+      make a network request at all, so the list of installed apps, the break history and the
+      settings can never leave the device.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+
+    <!--
+      Narrow package visibility: only activities that publish a launcher entry are visible to
+      this app. This is the documented alternative to QUERY_ALL_PACKAGES, which Google Play
+      restricts for installed-app inventory.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="smsto" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.BreakMode">
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Not exported and not run in a separate process: the alarm only closes out a break
+             that has already expired, so a stale alarm can never start anything. -->
+        <receiver
+            android:name=".session.BreakAlarmReceiver"
+            android:exported="false" />
+
+        <!-- Receiver for automated focus schedules -->
+        <receiver
+            android:name=".session.FocusScheduleReceiver"
+            android:exported="false" />
+
+        <!-- Enforces focus mode by restricting non-chosen apps while keeping essential
+             system UI (notifications, quick panel, DND) open. -->
+        <service
+            android:name=".blocker.FocusAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+    </application>
+</manifest>

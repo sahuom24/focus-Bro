@@ -1,0 +1,16 @@
+*.iml
+.gradle/
+.tooling/
+.idea/
+build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# Local signing material: never commit a keystore or its passwords.
+keystore.properties
+keystore/
+*.jks
