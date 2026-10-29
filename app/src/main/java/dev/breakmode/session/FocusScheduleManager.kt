@@ -85,6 +85,31 @@ object FocusScheduleManager {
         }
         return null
     }
+
+    /**
+     * Checks if current clock time falls inside an active scheduled focus window.
+     */
+    fun isCurrentlyInSchedule(schedule: FocusSchedule, nowCal: Calendar = Calendar.getInstance()): Boolean {
+        if (!schedule.enabled || schedule.daysOfWeek.isEmpty()) return false
+        val nowMillis = nowCal.timeInMillis
+        for (dayOffset in listOf(-1, 0)) {
+            val start = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, dayOffset)
+                set(Calendar.HOUR_OF_DAY, schedule.startHour)
+                set(Calendar.MINUTE, schedule.startMinute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val dayOfWeek = start.get(Calendar.DAY_OF_WEEK)
+            if (dayOfWeek in schedule.daysOfWeek) {
+                val endMillis = start.timeInMillis + schedule.durationMinutes * 60_000L
+                if (nowMillis in start.timeInMillis until endMillis) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
 }
 
 /**

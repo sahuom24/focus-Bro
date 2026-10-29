@@ -123,11 +123,8 @@ fun BreakModeApp(viewModel: BreakViewModel) {
     when {
         current != null -> {
             BackHandler {
-                if (emergencyExitAvailable) {
-                    requestEmergencyExit()
-                } else {
-                    showEmergencyExitExhaustedNotice = true
-                }
+                // Back button does nothing during focus mode.
+                // Emergency exit is only accessible via the dedicated "Life" button on screen.
             }
             SessionScreen(
                 active = current,

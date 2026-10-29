@@ -1,5 +1,7 @@
 package dev.breakmode.ui
 
+import android.app.TimePickerDialog
+import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -54,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -719,9 +722,11 @@ private fun SchedulesPageTab(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
-                            val timeStr = String.format("%02d:%02d", schedule.startHour, schedule.startMinute)
+                            val startStr = String.format("%02d:%02d", schedule.startHour, schedule.startMinute)
+                            val endTotalMins = (schedule.startHour * 60 + schedule.startMinute + schedule.durationMinutes) % (24 * 60)
+                            val endStr = String.format("%02d:%02d", endTotalMins / 60, endTotalMins % 60)
                             Text(
-                                text = "$timeStr · ${formatMinutes(schedule.durationMinutes)} · $bucketName",
+                                text = "$startStr → $endStr (${formatMinutes(schedule.durationMinutes)}) · $bucketName",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = colors.primary,
                             )
@@ -869,14 +874,51 @@ private fun AddScheduleDialog(
     onDismiss: () -> Unit,
     onConfirm: (FocusSchedule) -> Unit,
 ) {
-    var name by remember { mutableStateOf("Deep Work") }
-    var startHour by remember { mutableIntStateOf(9) }
+    val context = LocalContext.current
+    var name by remember { mutableStateOf("Bedtime") }
+    var startHour by remember { mutableIntStateOf(22) }
     var startMinute by remember { mutableIntStateOf(0) }
-    var duration by remember { mutableIntStateOf(60) }
-    var selectedDays by remember { mutableStateOf(setOf(2, 3, 4, 5, 6)) } // Mon-Fri
-    var selectedBucketId by remember { mutableStateOf(buckets.firstOrNull()?.id) }
+    var endHour by remember { mutableIntStateOf(6) }
+    var endMinute by remember { mutableIntStateOf(0) }
+    var selectedDays by remember { mutableStateOf(setOf(1, 2, 3, 4, 5, 6, 7)) } // Everyday
+    var selectedBucketId by remember { mutableStateOf(buckets.firstOrNull()?.id ?: "default") }
 
     val dayNames = listOf("S", "M", "T", "W", "T", "F", "S")
+
+    val calculateDuration = { sH: Int, sM: Int, eH: Int, eM: Int ->
+        val startTotal = sH * 60 + sM
+        val endTotal = eH * 60 + eM
+        val diff = endTotal - startTotal
+        if (diff > 0) diff else (24 * 60 + diff)
+    }
+
+    val duration = calculateDuration(startHour, startMinute, endHour, endMinute)
+
+    val openStartTimePicker = {
+        TimePickerDialog(
+            context,
+            { _, h, m ->
+                startHour = h
+                startMinute = m
+            },
+            startHour,
+            startMinute,
+            DateFormat.is24HourFormat(context),
+        ).show()
+    }
+
+    val openEndTimePicker = {
+        TimePickerDialog(
+            context,
+            { _, h, m ->
+                endHour = h
+                endMinute = m
+            },
+            endHour,
+            endMinute,
+            DateFormat.is24HourFormat(context),
+        ).show()
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -890,48 +932,97 @@ private fun AddScheduleDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(16.dp))
 
-                Text(text = "Start time", style = MaterialTheme.typography.labelMedium)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = String.format("%02d", startHour),
-                        onValueChange = {
-                            val v = it.toIntOrNull()
-                            if (v != null && v in 0..23) startHour = v
-                        },
-                        label = { Text("Hour (0-23)") },
-                        modifier = Modifier.weight(1f),
-                    )
-                    OutlinedTextField(
-                        value = String.format("%02d", startMinute),
-                        onValueChange = {
-                            val v = it.toIntOrNull()
-                            if (v != null && v in 0..59) startMinute = v
-                        },
-                        label = { Text("Min (0-59)") },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-
-                Spacer(Modifier.height(14.dp))
                 Text(
-                    text = "Duration: ${formatMinutes(duration)}",
+                    text = "Time Window (Tap to change)",
                     style = MaterialTheme.typography.labelMedium,
                 )
-                Slider(
-                    value = duration.toFloat(),
-                    onValueChange = { duration = ((it / 5f).roundToInt() * 5).coerceIn(5, 480) },
-                    valueRange = 5f..480f,
-                    steps = 94,
+                Spacer(Modifier.height(8.dp))
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                )
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    // Start time card
+                    Card(
+                        onClick = openStartTimePicker,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        ),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = "START TIME",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = String.format("%02d:%02d", startHour, startMinute),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = "Tap to set",
+                                style = TextStyle(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
+                    // End time card
+                    Card(
+                        onClick = openEndTimePicker,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        ),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = "END TIME",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = String.format("%02d:%02d", endHour, endMinute),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = "Tap to set",
+                                style = TextStyle(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
 
                 Spacer(Modifier.height(10.dp))
+                Text(
+                    text = "Total Focus Duration: ${formatMinutes(duration)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+
+                Spacer(Modifier.height(14.dp))
                 Text(text = "Repeat on", style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(4.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -955,6 +1046,7 @@ private fun AddScheduleDialog(
                 if (buckets.isNotEmpty()) {
                     Spacer(Modifier.height(14.dp))
                     Text(text = "App Bucket", style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.height(4.dp))
                     Row(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),

@@ -47,14 +47,14 @@ data class BreakSettings(
     val requireUnlockToEnd: Boolean = false,
     val wallpaper: Wallpaper = Wallpaper.AMOLED,
     val buckets: List<AppBucket> = defaultBuckets(),
-    val selectedBucketId: String? = "travel",
+    val selectedBucketId: String? = "default",
     val schedules: List<FocusSchedule> = emptyList(),
 ) {
     companion object {
         fun defaultBuckets(): List<AppBucket> = listOf(
-            AppBucket(id = "travel", name = "Travel", appPackages = emptySet()),
+            AppBucket(id = "default", name = "Default", appPackages = emptySet()),
             AppBucket(id = "study", name = "Study", appPackages = emptySet()),
-            AppBucket(id = "family", name = "Family time", appPackages = emptySet()),
+            AppBucket(id = "travel", name = "Travel", appPackages = emptySet()),
         )
     }
 

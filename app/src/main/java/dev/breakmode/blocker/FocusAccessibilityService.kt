@@ -66,6 +66,9 @@ class FocusAccessibilityService : AccessibilityService() {
         // Always allow essential Android system UI (notifications, quick panel, DND, volume, lock screen)
         if (packageName in SYSTEM_PACKAGES) return
 
+        // Always allow biometric / fingerprint / credential confirmation prompts
+        if (isBiometricOrSecurity(packageName, className)) return
+
         // Always allow active input methods (keyboards)
         if (isInputMethod(packageName)) return
 
@@ -80,15 +83,15 @@ class FocusAccessibilityService : AccessibilityService() {
             val intent = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             }
             startActivity(intent)
             return
         }
 
-        // For system settings: allow essential controls (DND, Sound, Notifications, Volume, Panels)
-        // but block screens that can be used to kill or tamper with the app
-        if (packageName == "com.android.settings") {
+        // For system settings: allow essential controls and authentication dialogs
+        if (packageName == "com.android.settings" || packageName.endsWith(".settings")) {
             if (isAllowedSettingsScreen(className)) {
                 return
             }
@@ -99,14 +102,12 @@ class FocusAccessibilityService : AccessibilityService() {
     }
 
     private fun blockApp(packageName: String) {
-        // Return to home first so the restricted app is dismissed
-        performGlobalAction(GLOBAL_ACTION_HOME)
-
-        // Bring the focus mode session screen to the foreground
+        // Bring the focus mode session screen directly to the foreground
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                Intent.FLAG_ACTIVITY_SINGLE_TOP
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             putExtra(EXTRA_BLOCKED_PACKAGE, packageName)
         }
         startActivity(intent)
@@ -156,8 +157,50 @@ class FocusAccessibilityService : AccessibilityService() {
             packageName == "com.samsung.android.messaging"
     }
 
+    private fun isBiometricOrSecurity(packageName: String, className: String): Boolean {
+        val lowerPkg = packageName.lowercase()
+        val lowerClass = className.lowercase()
+
+        // Known biometric & auth service packages across Android OEMs (Samsung, Xiaomi, Oppo, Vivo, Google)
+        if (lowerPkg.contains("fingerprint") ||
+            lowerPkg.contains("biometric") ||
+            lowerPkg.contains("authframework") ||
+            lowerPkg.contains("authservice") ||
+            lowerPkg.contains("securityadd") ||
+            lowerPkg.contains("guardprovider") ||
+            lowerPkg.contains("keyguard")
+        ) {
+            return true
+        }
+
+        // Biometric prompt, credential prompt, and lock screen verification classes
+        return lowerClass.contains("fingerprint") ||
+            lowerClass.contains("biometric") ||
+            lowerClass.contains("faceunlock") ||
+            lowerClass.contains("credential") ||
+            lowerClass.contains("confirmlock") ||
+            lowerClass.contains("keyguard") ||
+            lowerClass.contains("devicecredential")
+    }
+
     private fun isAllowedSettingsScreen(className: String): Boolean {
         val lower = className.lowercase()
+
+        // Explicitly allow biometric, fingerprint, face, pattern, PIN, password verification dialogs
+        if (lower.contains("fingerprint") ||
+            lower.contains("biometric") ||
+            lower.contains("face") ||
+            lower.contains("credential") ||
+            lower.contains("confirmlock") ||
+            lower.contains("password") ||
+            lower.contains("pattern") ||
+            lower.contains("pin") ||
+            lower.contains("auth") ||
+            lower.contains("security")
+        ) {
+            return true
+        }
+
         // Strictly prevent tampering / force-stopping
         if (lower.contains("installedappdetails") ||
             lower.contains("manageapplications") ||
@@ -201,13 +244,39 @@ class FocusAccessibilityService : AccessibilityService() {
             "com.miui.systemui",
             "com.huawei.systemui",
             "com.oppo.systemui",
+            "com.oplus.systemui",
+            "com.vivo.systemui",
             "com.oneplus.systemui",
             "com.android.permissioncontroller",
             "com.google.android.permissioncontroller",
+            "com.google.android.gms",
+            "com.android.keyguard",
+            "com.samsung.android.biometrics.app.setting",
+            "com.samsung.android.authframework",
+            "com.samsung.android.authservice",
+            "com.sec.android.app.syscal",
+            "com.coloros.fingerprint",
+            "com.oplus.fingerprint",
+            "com.coloros.safecenter",
+            "com.oplus.safecenter",
+            "com.miui.securityadd",
+            "com.miui.guardprovider",
+            "com.miui.securitycenter",
+            "com.vivo.fingerprint",
+            "com.vivo.safecenter",
+            "com.android.documentsui",
+            "com.google.android.documentsui",
+            "com.android.cellbroadcastreceiver",
+            "com.google.android.cellbroadcastreceiver",
+            "com.android.emergency",
+            "com.google.android.apps.safetyhub",
+            "com.google.android.marvin.talkback",
+            "com.samsung.android.accessibility.talkback",
             "com.android.phone",
             "com.android.server.telecom",
             "com.google.android.dialer",
             "com.samsung.android.incallui",
+            "com.samsung.android.dialer",
         )
 
         fun isServiceEnabled(context: Context): Boolean {

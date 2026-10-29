@@ -312,16 +312,22 @@ class BreakRepository private constructor(context: Context) {
             requireUnlockToEnd = prefs.getBoolean(KEY_UNLOCK, false),
             wallpaper = wallpaper,
             buckets = readBuckets(),
-            selectedBucketId = prefs.getString(KEY_SELECTED_BUCKET, "travel"),
+            selectedBucketId = prefs.getString(KEY_SELECTED_BUCKET, "default") ?: "default",
             schedules = readSchedules(),
         )
     }
 
     private fun readBuckets(): List<AppBucket> {
-        val raw = prefs.getString(KEY_BUCKETS, null) ?: return BreakSettings.defaultBuckets()
+        val defaultApps = DefaultCommunicationApps.resolveDefaultBucketPackages(appContext)
+        val defaultList = listOf(
+            AppBucket(id = "default", name = "Default", appPackages = defaultApps),
+            AppBucket(id = "study", name = "Study", appPackages = emptySet()),
+            AppBucket(id = "travel", name = "Travel", appPackages = emptySet()),
+        )
+        val raw = prefs.getString(KEY_BUCKETS, null) ?: return defaultList
         return runCatching {
             val array = JSONArray(raw)
-            buildList {
+            val parsed = buildList {
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)
                     val id = obj.getString("id")
@@ -338,8 +344,23 @@ class BreakRepository private constructor(context: Context) {
                     }
                     add(AppBucket(id = id, name = name, appPackages = pkgs))
                 }
-            }.take(AppBucket.MAX_BUCKETS)
-        }.getOrDefault(BreakSettings.defaultBuckets())
+            }
+
+            // Ensure "default" bucket exists and has default apps if empty
+            val hasDefault = parsed.any { it.id == "default" }
+            val merged = if (!hasDefault) {
+                listOf(AppBucket(id = "default", name = "Default", appPackages = defaultApps)) + parsed
+            } else {
+                parsed.map { b ->
+                    if (b.id == "default" && b.appPackages.isEmpty() && defaultApps.isNotEmpty()) {
+                        b.copy(appPackages = defaultApps)
+                    } else {
+                        b
+                    }
+                }
+            }
+            merged.take(AppBucket.MAX_BUCKETS)
+        }.getOrDefault(defaultList)
     }
 
     private fun writeBuckets(buckets: List<AppBucket>) {
