@@ -2,18 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
-      Permissions are intentionally minimal.
-
       POST_NOTIFICATIONS: shows the ongoing break status and the "break complete" notice.
       ACCESS_NOTIFICATION_POLICY: optional, user-granted special access that lets the app
       silence interruptions for the duration of a break.
-
-      There is deliberately NO android.permission.INTERNET here. Without it the app cannot
-      make a network request at all, so the list of installed apps, the break history and the
-      settings can never leave the device.
+      SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM: allows automated focus schedules to start
+      down to the exact second even in deep Doze mode.
+      RECEIVE_BOOT_COMPLETED: restores scheduled alarms and active breaks on reboot.
+      WAKE_LOCK: ensures alarms and receivers wake the device to trigger focus mode.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!--
       Narrow package visibility: only activities that publish a launcher entry are visible to
@@ -78,6 +80,17 @@
         <receiver
             android:name=".session.FocusScheduleReceiver"
             android:exported="false" />
+
+        <!-- Boot receiver to restore alarms on reboot or package upgrade -->
+        <receiver
+            android:name=".session.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
 
         <!-- Enforces focus mode by restricting non-chosen apps while keeping essential
              system UI (notifications, quick panel, DND) open. -->

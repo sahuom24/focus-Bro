@@ -5,6 +5,8 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import dev.breakmode.ui.MainActivity
 import java.util.Calendar
 
 /**
@@ -14,6 +16,15 @@ object FocusScheduleManager {
 
     private const val REQUEST_CODE = 42
     const val EXTRA_SCHEDULE_ID = "extra_schedule_id"
+
+    fun canScheduleExact(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val manager = context.getSystemService(AlarmManager::class.java)
+            manager?.canScheduleExactAlarms() ?: true
+        } else {
+            true
+        }
+    }
 
     fun updateNextAlarm(context: Context, schedules: List<FocusSchedule>) {
         val manager = context.getSystemService(AlarmManager::class.java) ?: return
@@ -45,8 +56,31 @@ object FocusScheduleManager {
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
+
             runCatching {
-                manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, earliestMillis, pending)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (manager.canScheduleExactAlarms()) {
+                        manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, earliestMillis, pending)
+                    } else {
+                        // setAlarmClock is guaranteed to fire at exact time without SCHEDULE_EXACT_ALARM permission
+                        val showIntent = PendingIntent.getActivity(
+                            context,
+                            REQUEST_CODE + 1,
+                            Intent(context, MainActivity::class.java),
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                        )
+                        manager.setAlarmClock(AlarmManager.AlarmClockInfo(earliestMillis, showIntent), pending)
+                    }
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, earliestMillis, pending)
+                } else {
+                    manager.setExact(AlarmManager.RTC_WAKEUP, earliestMillis, pending)
+                }
+            }.onFailure {
+                // Last-resort fallback for constrained OEMs
+                runCatching {
+                    manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, earliestMillis, pending)
+                }
             }
         } else {
             cancel(context)
@@ -90,7 +124,14 @@ object FocusScheduleManager {
      * Checks if current clock time falls inside an active scheduled focus window.
      */
     fun isCurrentlyInSchedule(schedule: FocusSchedule, nowCal: Calendar = Calendar.getInstance()): Boolean {
-        if (!schedule.enabled || schedule.daysOfWeek.isEmpty()) return false
+        return getScheduledEndMillis(schedule, nowCal) != null
+    }
+
+    /**
+     * Returns the scheduled end timestamp in millis if currently inside the focus window, or null otherwise.
+     */
+    fun getScheduledEndMillis(schedule: FocusSchedule, nowCal: Calendar = Calendar.getInstance()): Long? {
+        if (!schedule.enabled || schedule.daysOfWeek.isEmpty()) return null
         val nowMillis = nowCal.timeInMillis
         for (dayOffset in listOf(-1, 0)) {
             val start = Calendar.getInstance().apply {
@@ -104,11 +145,11 @@ object FocusScheduleManager {
             if (dayOfWeek in schedule.daysOfWeek) {
                 val endMillis = start.timeInMillis + schedule.durationMinutes * 60_000L
                 if (nowMillis in start.timeInMillis until endMillis) {
-                    return true
+                    return endMillis
                 }
             }
         }
-        return false
+        return null
     }
 }
 
@@ -124,9 +165,35 @@ class FocusScheduleReceiver : BroadcastReceiver() {
 
         if (schedule != null) {
             repository.startScheduled(schedule)
+
+            // Bring the focus mode session screen directly to the foreground
+            val activityIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            }
+            runCatching { context.startActivity(activityIntent) }
         }
 
         // Re-arm for the next scheduled occurrence
         FocusScheduleManager.updateNextAlarm(context, schedules)
+    }
+}
+
+/**
+ * Restores alarms when the device boots or the app package is updated.
+ */
+class BootReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val action = intent.action ?: return
+        if (action == Intent.ACTION_BOOT_COMPLETED ||
+            action == Intent.ACTION_MY_PACKAGE_REPLACED ||
+            action == "android.intent.action.QUICKBOOT_POWERON"
+        ) {
+            val repository = BreakRepository.get(context)
+            repository.syncWithClock()
+            FocusScheduleManager.updateNextAlarm(context, repository.settings.value.schedules)
+        }
     }
 }

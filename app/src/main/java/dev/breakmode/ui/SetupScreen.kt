@@ -1,6 +1,10 @@
 package dev.breakmode.ui
 
 import android.app.TimePickerDialog
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -67,6 +71,7 @@ import dev.breakmode.session.AppBucket
 import dev.breakmode.session.BreakRecord
 import dev.breakmode.session.BreakSettings
 import dev.breakmode.session.FocusSchedule
+import dev.breakmode.session.FocusScheduleManager
 import dev.breakmode.session.Wallpaper
 import dev.breakmode.ui.theme.wallpaperSwatch
 import kotlin.math.roundToInt
@@ -673,6 +678,46 @@ private fun SchedulesPageTab(
         }
 
         Spacer(Modifier.height(16.dp))
+
+        val context = LocalContext.current
+        val canExact = remember(context) { FocusScheduleManager.canScheduleExact(context) }
+        if (!canExact) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = colors.errorContainer.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                data = Uri.parse("package:${context.packageName}")
+                            }
+                            runCatching { context.startActivity(intent) }
+                        }
+                    },
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = "Exact Alarm Permission Required",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.onErrorContainer,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "Tap to grant permission in Settings so schedules turn on automatically at the exact minute.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onErrorContainer.copy(alpha = 0.85f),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+        }
 
         if (schedules.isEmpty()) {
             Card(

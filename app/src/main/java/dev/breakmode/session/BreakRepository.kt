@@ -119,6 +119,7 @@ class BreakRepository private constructor(context: Context) {
         updateSettings { current ->
             current.copy(schedules = current.schedules + schedule)
         }
+        checkAndStartCurrentSchedule()
     }
 
     fun updateSchedule(schedule: FocusSchedule) {
@@ -126,6 +127,7 @@ class BreakRepository private constructor(context: Context) {
             val updated = current.schedules.map { if (it.id == schedule.id) schedule else it }
             current.copy(schedules = updated)
         }
+        checkAndStartCurrentSchedule()
     }
 
     fun deleteSchedule(scheduleId: String) {
@@ -140,6 +142,21 @@ class BreakRepository private constructor(context: Context) {
                 if (it.id == scheduleId) it.copy(enabled = enabled) else it
             }
             current.copy(schedules = updated)
+        }
+        if (enabled) {
+            checkAndStartCurrentSchedule()
+        }
+    }
+
+    fun checkAndStartCurrentSchedule() {
+        if (_active.value != null) return
+        if (!isEmergencyExitAvailable()) return
+        val settings = _settings.value
+        val matching = settings.schedules.firstOrNull {
+            it.enabled && FocusScheduleManager.isCurrentlyInSchedule(it)
+        }
+        if (matching != null) {
+            startScheduled(matching)
         }
     }
 
@@ -201,9 +218,12 @@ class BreakRepository private constructor(context: Context) {
             DefaultCommunicationApps.getMessagesPackage(appContext)?.let { add(it) }
         }
 
+        val scheduledEnd = FocusScheduleManager.getScheduledEndMillis(schedule)
+            ?: (now + schedule.durationMinutes * 60_000L)
+        val effectiveEnd = scheduledEnd.coerceAtLeast(now + 60_000L)
         val active = ActiveBreak(
             startedAtMillis = now,
-            endsAtMillis = now + schedule.durationMinutes * 60_000L,
+            endsAtMillis = effectiveEnd,
             allowedPackages = allowedWithComm,
             requireUnlockToEnd = settings.requireUnlockToEnd,
             interruptionsPaused = paused,
@@ -290,8 +310,12 @@ class BreakRepository private constructor(context: Context) {
      */
     fun syncWithClock() {
         refreshEmergencyExitStatus()
-        val active = _active.value ?: return
-        if (active.isOver()) finish(completed = true)
+        val active = _active.value
+        if (active != null) {
+            if (active.isOver()) finish(completed = true)
+        } else {
+            checkAndStartCurrentSchedule()
+        }
     }
 
     fun clearHistory() {

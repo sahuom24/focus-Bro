@@ -1,1 +1,1 @@
-ebc259de8032de65043ca9392954529f2b872153e495fb8133ab6523ebca0c66  BreakMode-1.0.0-release.apk
+fb80eab558d9fa15e1c59dfc0024dba0e889380a9d2abb2ef16b9081f01c9070  BreakMode-1.0.0-release.apk
