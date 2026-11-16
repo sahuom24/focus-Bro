@@ -177,6 +177,7 @@ class BreakRepository private constructor(context: Context) {
             addAll(settings.effectiveAllowedPackages)
             DefaultCommunicationApps.getPhonePackage(appContext)?.let { add(it) }
             DefaultCommunicationApps.getMessagesPackage(appContext)?.let { add(it) }
+            DefaultCommunicationApps.getUpiPackage(appContext)?.let { add(it) }
         }
 
         val active = ActiveBreak(
@@ -216,6 +217,7 @@ class BreakRepository private constructor(context: Context) {
             addAll(allowed)
             DefaultCommunicationApps.getPhonePackage(appContext)?.let { add(it) }
             DefaultCommunicationApps.getMessagesPackage(appContext)?.let { add(it) }
+            DefaultCommunicationApps.getUpiPackage(appContext)?.let { add(it) }
         }
 
         val scheduledEnd = FocusScheduleManager.getScheduledEndMillis(schedule)
@@ -330,7 +332,7 @@ class BreakRepository private constructor(context: Context) {
             Wallpaper.valueOf(prefs.getString(KEY_WALLPAPER, Wallpaper.AMOLED.name)!!)
         }.getOrDefault(Wallpaper.AMOLED)
         return BreakSettings(
-            minutes = prefs.getInt(KEY_MINUTES, 30).coerceIn(5, 480),
+            minutes = prefs.getInt(KEY_MINUTES, 30).coerceIn(5, 720),
             allowedPackages = prefs.getStringSet(KEY_ALLOWED, emptySet()).orEmpty().toSet(),
             pauseInterruptions = prefs.getBoolean(KEY_PAUSE, true),
             requireUnlockToEnd = prefs.getBoolean(KEY_UNLOCK, false),
@@ -402,7 +404,7 @@ class BreakRepository private constructor(context: Context) {
     }
 
     private fun readSchedules(): List<FocusSchedule> {
-        val raw = prefs.getString(KEY_SCHEDULES, null) ?: return emptyList()
+        val raw = prefs.getString(KEY_SCHEDULES, null) ?: return defaultSchedules()
         return runCatching {
             val array = JSONArray(raw)
             buildList {
@@ -521,6 +523,8 @@ class BreakRepository private constructor(context: Context) {
 
         @Volatile
         private var instance: BreakRepository? = null
+
+        fun defaultSchedules(): List<FocusSchedule> = FocusSchedule.defaultRoutines()
 
         fun get(context: Context): BreakRepository = instance ?: synchronized(this) {
             instance ?: BreakRepository(context).also { instance = it }

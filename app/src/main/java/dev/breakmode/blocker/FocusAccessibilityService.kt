@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -33,7 +34,7 @@ class FocusAccessibilityService : AccessibilityService() {
         serviceInfo = (serviceInfo ?: AccessibilityServiceInfo()).apply {
             eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-            flags = AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
+            flags = AccessibilityServiceInfo.DEFAULT
             notificationTimeout = 50
         }
     }
@@ -78,8 +79,11 @@ class FocusAccessibilityService : AccessibilityService() {
         // Always allow default messaging app (SMS)
         if (isDefaultMessagesApp(packageName)) return
 
+        // Always allow UPI payments, digital wallets, and banking apps so transactions are never interrupted
+        if (isUpiOrBankingApp(packageName)) return
+
         // Do not allow exiting to home screen: lock user in the focus screen
-        if (isDefaultLauncher(packageName)) {
+        if (isLauncherPackage(packageName)) {
             val intent = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
@@ -126,11 +130,13 @@ class FocusAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun isDefaultLauncher(packageName: String): Boolean {
+    private fun isLauncherPackage(packageName: String): Boolean {
         return runCatching {
             val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
             val resolve = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
-            resolve?.activityInfo?.packageName == packageName
+            if (resolve?.activityInfo?.packageName == packageName) return true
+            val list = packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+            list.any { it.activityInfo?.packageName == packageName }
         }.getOrDefault(false)
     }
 
@@ -221,6 +227,14 @@ class FocusAccessibilityService : AccessibilityService() {
             lower.contains("network")
     }
 
+    private fun isUpiOrBankingApp(packageName: String): Boolean {
+        if (packageName in UPI_AND_BANKING_PACKAGES) return true
+        return runCatching {
+            val upiIntent = Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay")).setPackage(packageName)
+            packageManager.queryIntentActivities(upiIntent, 0).isNotEmpty()
+        }.getOrDefault(false)
+    }
+
     private fun getAppLabel(packageName: String): String {
         return runCatching {
             val info = packageManager.getApplicationInfo(packageName, 0)
@@ -235,6 +249,35 @@ class FocusAccessibilityService : AccessibilityService() {
     companion object {
         const val EXTRA_BLOCKED_PACKAGE = "dev.breakmode.extra.BLOCKED_PACKAGE"
         private const val TOAST_INTERVAL_MS = 2000L
+
+        val UPI_AND_BANKING_PACKAGES = setOf(
+            "com.google.android.apps.nbu.paisa.user", // Google Pay
+            "com.phonepe.app",                        // PhonePe
+            "com.phonepe.simulator",
+            "net.one97.paytm",                        // Paytm
+            "in.org.npci.upiapp",                     // BHIM
+            "com.dreamplug.androidapp",               // CRED
+            "com.naviapp",                            // Navi
+            "in.amazon.mShop.android.shopping",       // Amazon Pay
+            "com.whatsapp",                           // WhatsApp Payments
+            "com.freecharge.android",                 // FreeCharge
+            "com.mobikwik_new",                       // MobiKwik
+            "com.sbi.lotusintouch",                   // YONO SBI
+            "com.sbi.SBIFreedomPlus",                 // YONO Lite
+            "com.csam.icici.bank.imobile",            // ICICI iMobile
+            "com.snapwork.hdfc",                      // HDFC MobileBanking
+            "com.hdfcbank.payzapp",                   // PayZapp
+            "com.axis.mobile",                        // Axis Mobile
+            "com.msf.kbank.mobile",                   // Kotak 811
+            "com.bankofbaroda.mconnect",              // bob World
+            "com.pnb.pnbone",                         // PNB ONE
+            "com.canarabank.mobility",                // Canara ai1
+            "com.infrasofttech.uboi",                 // Union Bank
+            "com.indusind.mobilebanking",             // IndusMobile
+            "com.fedmobile",                          // FedMobile
+            "com.idfcfirstbank.optimus",              // IDFC FIRST
+            "com.myairtelapp",                        // Airtel Thanks
+        )
 
         val SYSTEM_PACKAGES = setOf(
             "android",
@@ -299,6 +342,22 @@ class FocusAccessibilityService : AccessibilityService() {
                 }
                 false
             }.getOrDefault(false)
+        }
+
+        fun canDrawOverlays(context: Context): Boolean {
+            return Settings.canDrawOverlays(context)
+        }
+
+        fun openOverlaySettings(context: Context) {
+            runCatching {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:${context.packageName}"),
+                ).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+            }
         }
     }
 }

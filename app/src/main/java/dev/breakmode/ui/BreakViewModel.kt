@@ -46,6 +46,9 @@ class BreakViewModel(application: Application) : AndroidViewModel(application) {
     private val _accessibilityAccess = MutableStateFlow(false)
     val accessibilityAccess: StateFlow<Boolean> = _accessibilityAccess.asStateFlow()
 
+    private val _overlayAccess = MutableStateFlow(false)
+    val overlayAccess: StateFlow<Boolean> = _overlayAccess.asStateFlow()
+
     private val _notificationsEnabled = MutableStateFlow(true)
     val notificationsEnabled: StateFlow<Boolean> = _notificationsEnabled.asStateFlow()
 
@@ -73,6 +76,7 @@ class BreakViewModel(application: Application) : AndroidViewModel(application) {
         val context = getApplication<Application>()
         _dndAccess.value = Interruptions.hasAccess(context)
         _accessibilityAccess.value = FocusAccessibilityService.isServiceEnabled(context)
+        _overlayAccess.value = FocusAccessibilityService.canDrawOverlays(context)
         _notificationsEnabled.value = Interruptions.notificationsAllowed(context)
     }
 
@@ -111,7 +115,7 @@ class BreakViewModel(application: Application) : AndroidViewModel(application) {
     // --------------------------------------------------------------- settings
 
     fun setMinutes(minutes: Int) =
-        repository.updateSettings { it.copy(minutes = minutes.coerceIn(5, 480)) }
+        repository.updateSettings { it.copy(minutes = minutes.coerceIn(5, dev.breakmode.session.BreakSettings.MAX_DURATION_MINUTES)) }
 
     fun toggleApp(packageName: String) = repository.toggleAllowedPackage(packageName)
 

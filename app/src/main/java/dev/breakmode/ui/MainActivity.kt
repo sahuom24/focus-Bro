@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.KeyguardManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -65,6 +66,7 @@ fun BreakModeApp(viewModel: BreakViewModel) {
     val editingBucketId by viewModel.editingBucketId.collectAsStateWithLifecycle()
     val dndAccess by viewModel.dndAccess.collectAsStateWithLifecycle()
     val accessibilityAccess by viewModel.accessibilityAccess.collectAsStateWithLifecycle()
+    val overlayAccess by viewModel.overlayAccess.collectAsStateWithLifecycle()
     val emergencyExitAvailable by viewModel.emergencyExitAvailable.collectAsStateWithLifecycle()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
     val justFinished by viewModel.justFinishedMinutes.collectAsStateWithLifecycle()
@@ -73,6 +75,7 @@ fun BreakModeApp(viewModel: BreakViewModel) {
     var showEmergencyExitExhaustedNotice by remember { mutableStateOf(false) }
     var showDndExplain by remember { mutableStateOf(false) }
     var showAccessibilityExplain by remember { mutableStateOf(false) }
+    var showOverlayExplain by remember { mutableStateOf(false) }
 
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -83,6 +86,10 @@ fun BreakModeApp(viewModel: BreakViewModel) {
     ) { viewModel.refreshAccess() }
 
     val accessibilitySettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { viewModel.refreshAccess() }
+
+    val overlaySettingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { viewModel.refreshAccess() }
 
@@ -161,7 +168,7 @@ fun BreakModeApp(viewModel: BreakViewModel) {
                 },
                 onBack = viewModel::closePicker,
                 title = if (currentBucket != null) "Edit ${currentBucket.name}" else "Keep available",
-                maxSelection = if (currentBucket != null) 5 else null,
+                maxSelection = if (currentBucket != null) dev.breakmode.session.AppBucket.MAX_APPS_PER_BUCKET else null,
             )
         }
 
@@ -170,6 +177,7 @@ fun BreakModeApp(viewModel: BreakViewModel) {
             history = history,
             dndAccess = dndAccess,
             accessibilityAccess = accessibilityAccess,
+            overlayAccess = overlayAccess,
             notificationsEnabled = notificationsEnabled,
             allowedLabels = apps
                 .filter { it.packageName in settings.effectiveAllowedPackages }
@@ -188,6 +196,8 @@ fun BreakModeApp(viewModel: BreakViewModel) {
                 }
                 if (!accessibilityAccess) {
                     showAccessibilityExplain = true
+                } else if (!overlayAccess) {
+                    showOverlayExplain = true
                 } else {
                     viewModel.startBreak()
                 }
@@ -218,6 +228,7 @@ fun BreakModeApp(viewModel: BreakViewModel) {
             onWallpaper = viewModel::setWallpaper,
             onRequestDndAccess = { showDndExplain = true },
             onRequestAccessibilityAccess = { showAccessibilityExplain = true },
+            onRequestOverlayAccess = { showOverlayExplain = true },
             onOpenNotificationSettings = {
                 val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                     .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
@@ -274,6 +285,38 @@ fun BreakModeApp(viewModel: BreakViewModel) {
                 TextButton(
                     onClick = {
                         showAccessibilityExplain = false
+                        viewModel.startBreak()
+                    },
+                ) { Text("Start anyway") }
+            },
+        )
+    }
+
+    if (showOverlayExplain) {
+        AlertDialog(
+            onDismissRequest = { showOverlayExplain = false },
+            title = { Text("Enable Full Lockdown Mode?") },
+            text = {
+                Text(
+                    "To prevent escaping to the home screen and ensure FocusBro stays active as your home screen during focus, grant the 'Display over other apps' permission.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showOverlayExplain = false
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:${context.packageName}"),
+                        )
+                        overlaySettingsLauncher.launch(intent)
+                    },
+                ) { Text("Open settings") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showOverlayExplain = false
                         viewModel.startBreak()
                     },
                 ) { Text("Start anyway") }

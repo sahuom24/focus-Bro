@@ -24,16 +24,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -56,6 +55,7 @@ import dev.breakmode.apps.DefaultCommunicationApps
 import dev.breakmode.apps.LaunchableApp
 import dev.breakmode.session.ActiveBreak
 import dev.breakmode.session.Wallpaper
+import dev.breakmode.ui.components.SlideToAction
 import kotlinx.coroutines.delay
 import java.text.DateFormat
 import java.util.Date
@@ -77,6 +77,8 @@ fun SessionScreen(
 ) {
     val context = LocalContext.current
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var extendsUsed by remember { mutableIntStateOf(0) }
+    val maxExtends = 4
 
     LaunchedEffect(active.endsAtMillis) {
         while (true) {
@@ -91,6 +93,7 @@ fun SessionScreen(
 
     val remaining = active.remainingMillis(now)
     val elapsedFraction = active.fractionElapsed(now)
+    val secondsLeft = ((remaining / 1000) % 60).coerceAtLeast(0)
     val endsAtLabel = remember(active.endsAtMillis) {
         DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(active.endsAtMillis))
     }
@@ -107,9 +110,9 @@ fun SessionScreen(
             .fillMaxSize()
             .background(AmoledBlack)
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
     ) {
-        // Top Bar: "UNPLUGGED" on left, "Life" emergency exit button on top right
+        // Top Bar: "FOCUSING" on left, "Life: 1/0" on top right
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -119,51 +122,57 @@ fun SessionScreen(
         ) {
             Column {
                 Text(
-                    text = "UNPLUGGED",
-                    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
-                    letterSpacing = 4.sp,
+                    text = "FOCUSING",
+                    style = TextStyle(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 4.sp,
+                    ),
                     color = Mint,
                 )
                 Text(
-                    text = "until $endsAtLabel",
-                    style = TextStyle(fontSize = 12.sp),
+                    text = "Ends at $endsAtLabel",
+                    style = TextStyle(fontSize = 11.sp),
                     color = Paper.copy(alpha = 0.55f),
                 )
             }
 
-            // Top Corner: Life (Emergency Exit)
-            Button(
-                onClick = onRequestEmergencyExit,
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (emergencyExitAvailable) Color(0xFF1E1E1E) else Color(0xFF121212),
-                    contentColor = if (emergencyExitAvailable) Paper else Paper.copy(alpha = 0.35f),
-                ),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                modifier = Modifier.height(38.dp),
+            // Life (Emergency Exit status)
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = if (emergencyExitAvailable) Color(0xFF1C1C22) else Color(0xFF141417),
+                modifier = Modifier.padding(vertical = 4.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = "Life",
-                    tint = if (emergencyExitAvailable) Color(0xFFFF5252) else Color(0xFF555555),
-                    modifier = Modifier.size(15.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = if (emergencyExitAvailable) "Life (1)" else "Life (0)",
-                    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "Life",
+                        tint = if (emergencyExitAvailable) Color(0xFFFF5252) else Color(0xFF666666),
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = if (emergencyExitAvailable) "Life 1" else "Life 0",
+                        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+                        color = if (emergencyExitAvailable) Paper else Paper.copy(alpha = 0.4f),
+                    )
+                }
             }
         }
 
-        // Center: Timer countdown
+        // Center: Circular Progress + Big Digital Countdown + Seconds Card
         Column(
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Canvas(Modifier.size(154.dp)) {
-                    val stroke = 7.dp.toPx()
+                Canvas(Modifier.size(190.dp)) {
+                    val stroke = 8.dp.toPx()
                     val inset = stroke / 2f
                     val arcSize = Size(size.width - stroke, size.height - stroke)
                     drawArc(
@@ -185,141 +194,184 @@ fun SessionScreen(
                         style = Stroke(width = stroke, cap = StrokeCap.Round),
                     )
                 }
+
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = formatCountdown(remaining),
                         style = TextStyle(
-                            fontSize = 34.sp,
-                            fontWeight = FontWeight.Light,
+                            fontSize = 38.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 1.sp,
                             fontFeatureSettings = "tnum",
                         ),
                         color = Paper,
                     )
-                    Text(
-                        text = "remaining",
-                        style = TextStyle(fontSize = 11.sp),
-                        color = Paper.copy(alpha = 0.45f),
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E1E24),
+                        modifier = Modifier.padding(top = 4.dp),
+                    ) {
+                        Text(
+                            text = String.format("%02d SEC", secondsLeft),
+                            style = TextStyle(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp,
+                            ),
+                            color = Mint,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-            TextButton(
-                onClick = { onExtend(10) },
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Text("+10 min", color = Paper.copy(alpha = 0.7f), fontSize = 13.sp)
-            }
+            Spacer(Modifier.height(20.dp))
 
-            if (active.requireUnlockToEnd) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "Phone lock required for Life exit.",
-                    style = TextStyle(fontSize = 11.sp),
-                    color = Paper.copy(alpha = 0.45f),
-                )
+            // +15 Min Extension Row (with BlockIt inspired extend dots)
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFF18181D),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable(enabled = extendsUsed < maxExtends) {
+                        if (extendsUsed < maxExtends) {
+                            extendsUsed++
+                            onExtend(15)
+                        }
+                    },
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = "+15 min",
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = if (extendsUsed < maxExtends) Paper else Paper.copy(alpha = 0.35f),
+                    )
+
+                    // Extension usage indicators (4 dots)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        for (i in 0 until maxExtends) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(
+                                        if (i < extendsUsed) Color(0xFF44444C) else Mint,
+                                    ),
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        // Bottom section: Apps in a pill + Left corner Phone + Right corner Messages
+        // Bottom Section: Allowed Apps Dock + Slide to Exit + Phone/Messages Corners
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Apps - in a pill
+            // Allowed Apps - Minimalist Text Pills (No Icons)
             if (bucketApps.isNotEmpty()) {
-                Surface(
-                    shape = RoundedCornerShape(26.dp),
-                    color = Color(0xFF161616),
-                    modifier = Modifier.padding(bottom = 16.dp),
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(bottom = 14.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        bucketApps.forEach { app ->
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .clickable { openApp(context, app.packageName) }
-                                    .padding(vertical = 2.dp, horizontal = 4.dp),
-                            ) {
-                                AppIcon(packageName = app.packageName, size = 42.dp)
-                                Spacer(Modifier.height(3.dp))
-                                Text(
-                                    text = app.label,
-                                    style = TextStyle(fontSize = 10.sp),
-                                    color = Paper.copy(alpha = 0.85f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = TextAlign.Center,
-                                )
-                            }
+                    bucketApps.forEach { app ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF16161A),
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { openApp(context, app.packageName) },
+                        ) {
+                            Text(
+                                text = app.label,
+                                style = TextStyle(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.5.sp,
+                                ),
+                                color = Paper,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                            )
                         }
                     }
                 }
-            } else {
-                Text(
-                    text = "Nothing but this screen until the break ends.",
-                    style = TextStyle(fontSize = 12.sp),
-                    color = Paper.copy(alpha = 0.45f),
-                    modifier = Modifier.padding(bottom = 16.dp),
-                )
             }
 
-            // Left bottom corner - phone, Right bottom corner - messages
+            // Monochrome / Black+White SLIDE TO EXIT Slider (Colourless)
+            SlideToAction(
+                text = "SLIDE TO EXIT",
+                thumbIcon = Icons.Default.Close,
+                onAction = onRequestEmergencyExit,
+                trackColor = Color(0xFF141416),
+                thumbColor = Color(0xFFE2E2E2),
+                thumbIconColor = Color(0xFF000000),
+                completedTrackColor = Color(0xFF28282E),
+                textColor = Color(0xFF888890),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+            )
+
+            // Phone (Left) and Messages (Right) dedicated bottom dock
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Left bottom corner: Phone
+                // Phone
                 Surface(
                     onClick = { DefaultCommunicationApps.openPhone(context) },
                     shape = CircleShape,
                     color = Color(0xFF162B1D),
-                    modifier = Modifier.size(54.dp),
+                    modifier = Modifier.size(52.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Call,
                             contentDescription = "Phone",
                             tint = Color(0xFF4CAF50),
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(22.dp),
                         )
                     }
                 }
 
-                // Subtitle in the center between phone and messages
-                if (!emergencyExitAvailable) {
-                    Text(
-                        text = "Life resets at midnight",
-                        style = TextStyle(fontSize = 10.sp),
-                        color = Paper.copy(alpha = 0.35f),
-                    )
-                }
+                // Status text
+                Text(
+                    text = if (emergencyExitAvailable) "1 Life Available" else "Life resets at midnight",
+                    style = TextStyle(fontSize = 10.sp),
+                    color = Paper.copy(alpha = 0.4f),
+                )
 
-                // Right bottom corner: Messages
+                // Messages
                 Surface(
                     onClick = { DefaultCommunicationApps.openMessages(context) },
                     shape = CircleShape,
                     color = Color(0xFF142436),
-                    modifier = Modifier.size(54.dp),
+                    modifier = Modifier.size(52.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = AppIcons.Messages,
                             contentDescription = "Messages",
                             tint = Color(0xFF64B5F6),
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(22.dp),
                         )
                     }
                 }

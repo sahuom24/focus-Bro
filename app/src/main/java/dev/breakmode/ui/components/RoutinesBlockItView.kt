@@ -1,0 +1,515 @@
+package dev.breakmode.ui.components
+
+import android.app.TimePickerDialog
+import android.text.format.DateFormat
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.breakmode.session.AppBucket
+import dev.breakmode.session.FocusSchedule
+import dev.breakmode.ui.formatMinutes
+
+/**
+ * Replicates BlockIt's exact schedule/routines interface.
+ * Features:
+ * - Large segmented digital clock at top showing start and end times
+ * - Dotted 24-hour routine timeline bar
+ * - Routine tabs (Routine 1, 2, 3) with active accent underline and lock/toggle tile
+ * - S M T W T F S day-of-week blocks
+ * - Tactile START & END ruler cards with interactive time pickers
+ * - Bag assignment & rename support
+ */
+@Composable
+fun RoutinesBlockItView(
+    schedules: List<FocusSchedule>,
+    buckets: List<AppBucket>,
+    onUpdateSchedule: (FocusSchedule) -> Unit,
+    onToggleSchedule: (String, Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
+
+    // Ensure we have at least 3 routines to display the 3-tab layout
+    val activeSchedules = remember(schedules) {
+        if (schedules.isNotEmpty()) schedules else FocusSchedule.defaultRoutines()
+    }
+
+    var selectedIndex by remember { mutableIntStateOf(0) }
+    val currentSchedule = activeSchedules.getOrNull(selectedIndex) ?: activeSchedules.firstOrNull()
+
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var renameInput by remember { mutableStateOf("") }
+
+    if (currentSchedule == null) return
+
+    val startStr = String.format("%02d:%02d", currentSchedule.startHour, currentSchedule.startMinute)
+    val endTotalMins = (currentSchedule.startHour * 60 + currentSchedule.startMinute + currentSchedule.durationMinutes) % (24 * 60)
+    val endHour = endTotalMins / 60
+    val endMinute = endTotalMins % 60
+    val endStr = String.format("%02d:%02d", endHour, endMinute)
+
+    val activeBucketName = buckets.firstOrNull { it.id == currentSchedule.bucketId }?.name ?: "All apps"
+
+    val openStartTimePicker = {
+        TimePickerDialog(
+            context,
+            { _, h, m ->
+                val newStartTotal = h * 60 + m
+                val currentEndTotal = endHour * 60 + endMinute
+                val diff = currentEndTotal - newStartTotal
+                val newDuration = if (diff > 0) diff else (24 * 60 + diff)
+                onUpdateSchedule(
+                    currentSchedule.copy(
+                        startHour = h,
+                        startMinute = m,
+                        durationMinutes = newDuration.coerceIn(5, 720),
+                    ),
+                )
+            },
+            currentSchedule.startHour,
+            currentSchedule.startMinute,
+            DateFormat.is24HourFormat(context),
+        ).show()
+    }
+
+    val openEndTimePicker = {
+        TimePickerDialog(
+            context,
+            { _, h, m ->
+                val currentStartTotal = currentSchedule.startHour * 60 + currentSchedule.startMinute
+                val newEndTotal = h * 60 + m
+                val diff = newEndTotal - currentStartTotal
+                val newDuration = if (diff > 0) diff else (24 * 60 + diff)
+                onUpdateSchedule(
+                    currentSchedule.copy(
+                        durationMinutes = newDuration.coerceIn(5, 720),
+                    ),
+                )
+            },
+            endHour,
+            endMinute,
+            DateFormat.is24HourFormat(context),
+        ).show()
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        // 1. TOP CLOCK CARD (BlockIt Segment Digital Clock + Timeline Dotted Bar)
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF141417)),
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 22.dp, horizontal = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // Large Digital Clock: START : END
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = startStr,
+                        style = TextStyle(
+                            fontSize = 48.sp,
+                            fontWeight = FontWeight.Light,
+                            letterSpacing = 2.sp,
+                            fontFeatureSettings = "tnum",
+                        ),
+                        color = if (currentSchedule.enabled) colors.primary else Color(0xFF888890),
+                    )
+                    Text(
+                        text = " : ",
+                        style = TextStyle(
+                            fontSize = 42.sp,
+                            fontWeight = FontWeight.Light,
+                            fontFeatureSettings = "tnum",
+                        ),
+                        color = Color(0xFF404048),
+                    )
+                    Text(
+                        text = endStr,
+                        style = TextStyle(
+                            fontSize = 48.sp,
+                            fontWeight = FontWeight.Light,
+                            letterSpacing = 2.sp,
+                            fontFeatureSettings = "tnum",
+                        ),
+                        color = if (currentSchedule.enabled) colors.primary else Color(0xFF888890),
+                    )
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                // Dotted Timeline Bar (48 slots for 24 hours of the day)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    val startSlot = (currentSchedule.startHour * 2 + currentSchedule.startMinute / 30) % 48
+                    val endSlot = (startSlot + currentSchedule.durationMinutes / 30)
+                    for (slot in 0 until 48) {
+                        val isActive = if (endSlot <= 48) {
+                            slot in startSlot until endSlot
+                        } else {
+                            slot >= startSlot || slot < (endSlot % 48)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(
+                                    when {
+                                        isActive && currentSchedule.enabled -> colors.primary
+                                        isActive -> Color(0xFF606068)
+                                        else -> Color(0xFF222226)
+                                    },
+                                ),
+                        )
+                    }
+                }
+            }
+        }
+
+        // 2. ROUTINE TABS ROW (ROUTINE 1 / BEDTIME, ROUTINE 2, ROUTINE 3 + Lock/Toggle Square)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Routine 1, 2, 3 tabs
+            activeSchedules.take(3).forEachIndexed { index, schedule ->
+                val isSelected = index == selectedIndex
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (isSelected) Color(0xFF16161A) else Color.Transparent)
+                        .clickable { selectedIndex = index }
+                        .padding(vertical = 10.dp, horizontal = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = schedule.name.uppercase(),
+                        style = TextStyle(
+                            fontSize = 11.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            letterSpacing = 1.sp,
+                        ),
+                        color = if (isSelected) colors.primary else Color(0xFF888890),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = String.format("%02d:%02d", schedule.startHour, schedule.startMinute),
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFeatureSettings = "tnum",
+                        ),
+                        color = if (isSelected) Color(0xFFE0E0E0) else Color(0xFF66666E),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    // Active Underline Bar (BlockIt style)
+                    Box(
+                        modifier = Modifier
+                            .width(26.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(if (isSelected) colors.primary else Color.Transparent),
+                    )
+                }
+            }
+
+            // Lock / Enable Toggle Square on the right
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = if (currentSchedule.enabled) colors.primary else Color(0xFF1C1C22),
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { onToggleSchedule(currentSchedule.id, !currentSchedule.enabled) },
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Toggle Routine",
+                        tint = if (currentSchedule.enabled) colors.onPrimary else Color(0xFF6E6E78),
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+        }
+
+        // 3. DAY-OF-WEEK BLOCK SELECTOR (S M T W T F S)
+        DayOfWeekSelector(
+            selectedDays = currentSchedule.daysOfWeek,
+            onToggleDay = { day ->
+                val newDays = if (day in currentSchedule.daysOfWeek) {
+                    if (currentSchedule.daysOfWeek.size > 1) currentSchedule.daysOfWeek - day else currentSchedule.daysOfWeek
+                } else {
+                    currentSchedule.daysOfWeek + day
+                }
+                onUpdateSchedule(currentSchedule.copy(daysOfWeek = newDays))
+            },
+            activeColor = colors.primary,
+        )
+
+        // 4. DURATION & STATUS INDICATOR
+        Text(
+            text = if (currentSchedule.enabled) {
+                "Active · ${formatMinutes(currentSchedule.durationMinutes)}"
+            } else {
+                "Off · ${formatMinutes(currentSchedule.durationMinutes)}"
+            },
+            style = TextStyle(
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 1.sp,
+            ),
+            color = if (currentSchedule.enabled) colors.primary else Color(0xFF777780),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        // 5. TACTILE START & END RULER CARDS
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            // START CARD
+            RulerTimeCard(
+                title = "START",
+                timeText = startStr,
+                isActive = currentSchedule.enabled,
+                accentColor = colors.primary,
+                onClick = openStartTimePicker,
+                modifier = Modifier.weight(1f),
+            )
+
+            // END CARD
+            RulerTimeCard(
+                title = "END",
+                timeText = endStr,
+                isActive = currentSchedule.enabled,
+                accentColor = colors.primary,
+                onClick = openEndTimePicker,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        // 6. ROUTINE RENAME & BAG ASSIGNMENT ROW
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Rename Chip
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFF16161A),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable {
+                        renameInput = currentSchedule.name
+                        showRenameDialog = true
+                    },
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Rename",
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "Rename: ${currentSchedule.name}",
+                        style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                        color = Color(0xFFE0E0E0),
+                    )
+                }
+            }
+
+            // Bag Selector
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                buckets.forEach { b ->
+                    FilterChip(
+                        selected = currentSchedule.bucketId == b.id,
+                        onClick = { onUpdateSchedule(currentSchedule.copy(bucketId = b.id)) },
+                        label = { Text(b.name, fontSize = 11.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = colors.primary.copy(alpha = 0.2f),
+                            selectedLabelColor = colors.primary,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    // Rename Dialog
+    if (showRenameDialog) {
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = { Text("Rename Routine") },
+            text = {
+                OutlinedTextField(
+                    value = renameInput,
+                    onValueChange = { renameInput = it },
+                    label = { Text("Routine Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (renameInput.isNotBlank()) {
+                            onUpdateSchedule(currentSchedule.copy(name = renameInput.trim()))
+                        }
+                        showRenameDialog = false
+                    },
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameDialog = false }) { Text("Cancel") }
+            },
+        )
+    }
+}
+
+/**
+ * Tactile ruler tick card matching BlockIt's START and END pickers.
+ */
+@Composable
+private fun RulerTimeCard(
+    title: String,
+    timeText: String,
+    isActive: Boolean,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF141417)),
+        shape = RoundedCornerShape(20.dp),
+        modifier = modifier.height(108.dp),
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Background vertical tick lines (ruler pattern)
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val totalLines = 25
+                val step = size.width / (totalLines + 1)
+                for (i in 1..totalLines) {
+                    val x = i * step
+                    val isCenter = i == totalLines / 2 + 1
+                    val lineHeight = if (isCenter) size.height * 0.45f else (if (i % 3 == 0) size.height * 0.25f else size.height * 0.14f)
+                    val lineColor = if (isCenter && isActive) accentColor else Color(0xFF26262C)
+                    val stroke = if (isCenter) 2.dp.toPx() else 1.dp.toPx()
+                    drawLine(
+                        color = lineColor,
+                        start = Offset(x, (size.height - lineHeight) / 2f),
+                        end = Offset(x, (size.height + lineHeight) / 2f),
+                        strokeWidth = stroke,
+                    )
+                }
+            }
+
+            // Foreground center time digits
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = timeText,
+                    style = TextStyle(
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        fontFeatureSettings = "tnum",
+                    ),
+                    color = if (isActive) accentColor else Color(0xFFD0D0D0),
+                )
+                Text(
+                    text = title,
+                    style = TextStyle(
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                    ),
+                    color = Color(0xFF888892),
+                )
+            }
+        }
+    }
+}

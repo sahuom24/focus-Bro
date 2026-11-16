@@ -19,7 +19,7 @@ data class AppBucket(
     val appPackages: Set<String> = emptySet(),
 ) {
     companion object {
-        const val MAX_APPS_PER_BUCKET = 5
+        const val MAX_APPS_PER_BUCKET = 6
         const val MAX_BUCKETS = 3
     }
 }
@@ -32,11 +32,47 @@ data class FocusSchedule(
     val name: String,
     val startHour: Int = 22, // 0..23
     val startMinute: Int = 0, // 0..59
-    val durationMinutes: Int = 60, // 5..480
+    val durationMinutes: Int = 60, // 5..720
     val daysOfWeek: Set<Int> = setOf(1, 2, 3, 4, 5, 6, 7), // Calendar.SUNDAY(1) to Calendar.SATURDAY(7)
     val bucketId: String? = null,
     val enabled: Boolean = true,
-)
+) {
+    companion object {
+        const val MAX_ROUTINES = 3
+        fun defaultRoutines(): List<FocusSchedule> = listOf(
+            FocusSchedule(
+                id = "routine_1",
+                name = "Bedtime",
+                startHour = 23,
+                startMinute = 0,
+                durationMinutes = 420,
+                daysOfWeek = setOf(1, 2, 3, 4, 5, 6, 7),
+                bucketId = "default",
+                enabled = false,
+            ),
+            FocusSchedule(
+                id = "routine_2",
+                name = "Deep Work",
+                startHour = 9,
+                startMinute = 0,
+                durationMinutes = 180,
+                daysOfWeek = setOf(2, 3, 4, 5, 6),
+                bucketId = "study",
+                enabled = false,
+            ),
+            FocusSchedule(
+                id = "routine_3",
+                name = "Travel / Gym",
+                startHour = 18,
+                startMinute = 0,
+                durationMinutes = 90,
+                daysOfWeek = setOf(2, 3, 4, 5, 6),
+                bucketId = "travel",
+                enabled = false,
+            ),
+        )
+    }
+}
 
 /** Everything the user configures before starting a break. Persisted in a private prefs file. */
 data class BreakSettings(
@@ -48,9 +84,10 @@ data class BreakSettings(
     val wallpaper: Wallpaper = Wallpaper.AMOLED,
     val buckets: List<AppBucket> = defaultBuckets(),
     val selectedBucketId: String? = "default",
-    val schedules: List<FocusSchedule> = emptyList(),
+    val schedules: List<FocusSchedule> = FocusSchedule.defaultRoutines(),
 ) {
     companion object {
+        const val MAX_DURATION_MINUTES = 720
         fun defaultBuckets(): List<AppBucket> = listOf(
             AppBucket(id = "default", name = "Default", appPackages = emptySet()),
             AppBucket(id = "study", name = "Study", appPackages = emptySet()),

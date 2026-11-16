@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,17 +33,20 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
@@ -73,13 +77,16 @@ import dev.breakmode.session.BreakSettings
 import dev.breakmode.session.FocusSchedule
 import dev.breakmode.session.FocusScheduleManager
 import dev.breakmode.session.Wallpaper
-import dev.breakmode.ui.theme.wallpaperSwatch
+import dev.breakmode.ui.components.DayOfWeekSelector
+import dev.breakmode.ui.components.RoutinesBlockItView
+import dev.breakmode.ui.components.SlideToAction
+import dev.breakmode.ui.components.SuitcasesRow
 import kotlin.math.roundToInt
 
 enum class AppTab(val title: String) {
     TIMER("Timer"),
-    BUCKETS("Buckets"),
-    SCHEDULE("Schedule"),
+    BUCKETS("Bags"),
+    SCHEDULE("Routines"),
     ANALYSIS("Analysis"),
 }
 
@@ -89,6 +96,7 @@ fun SetupScreen(
     history: List<BreakRecord>,
     dndAccess: Boolean,
     accessibilityAccess: Boolean,
+    overlayAccess: Boolean = false,
     notificationsEnabled: Boolean,
     allowedLabels: List<String>,
     justFinishedMinutes: Int?,
@@ -108,6 +116,7 @@ fun SetupScreen(
     onWallpaper: (Wallpaper) -> Unit,
     onRequestDndAccess: () -> Unit,
     onRequestAccessibilityAccess: () -> Unit,
+    onRequestOverlayAccess: () -> Unit = {},
     onOpenNotificationSettings: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -116,6 +125,8 @@ fun SetupScreen(
     var renameText by remember { mutableStateOf("") }
     var showAddScheduleDialog by remember { mutableStateOf(false) }
     var showSelectBucketPrompt by remember { mutableStateOf(false) }
+    var showCustomMinutesDialog by remember { mutableStateOf(false) }
+    var customMinutesInput by remember { mutableStateOf(settings.minutes.toString()) }
 
     val handleStartClick = {
         if (settings.selectedBucketId == null && settings.buckets.isNotEmpty()) {
@@ -145,6 +156,10 @@ fun SetupScreen(
                         settings = settings,
                         onMinutes = onMinutes,
                         onSelectBucket = onSelectBucket,
+                        onOpenCustom = {
+                            customMinutesInput = settings.minutes.toString()
+                            showCustomMinutesDialog = true
+                        },
                         onStart = handleStartClick,
                     )
 
@@ -159,12 +174,11 @@ fun SetupScreen(
                         },
                     )
 
-                    AppTab.SCHEDULE -> SchedulesPageTab(
+                    AppTab.SCHEDULE -> RoutinesBlockItView(
                         schedules = settings.schedules,
                         buckets = settings.buckets,
-                        onToggle = onToggleSchedule,
-                        onDelete = onDeleteSchedule,
-                        onAddClick = { showAddScheduleDialog = true },
+                        onUpdateSchedule = onUpdateSchedule,
+                        onToggleSchedule = onToggleSchedule,
                     )
 
                     AppTab.ANALYSIS -> AnalysisPageTab(
@@ -172,12 +186,13 @@ fun SetupScreen(
                         settings = settings,
                         dndAccess = dndAccess,
                         accessibilityAccess = accessibilityAccess,
+                        overlayAccess = overlayAccess,
                         notificationsEnabled = notificationsEnabled,
                         onPauseInterruptions = onPauseInterruptions,
                         onRequireUnlock = onRequireUnlock,
-                        onWallpaper = onWallpaper,
                         onRequestDndAccess = onRequestDndAccess,
                         onRequestAccessibilityAccess = onRequestAccessibilityAccess,
+                        onRequestOverlayAccess = onRequestOverlayAccess,
                         onOpenNotificationSettings = onOpenNotificationSettings,
                     )
                 }
@@ -194,24 +209,44 @@ fun SetupScreen(
                     onClick = { selectedTab = AppTab.TIMER },
                     icon = { Icon(AppIcons.Timer, contentDescription = "Timer") },
                     label = { Text("Timer") },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = colors.primary.copy(alpha = 0.2f),
+                        selectedIconColor = colors.primary,
+                        selectedTextColor = colors.primary,
+                    ),
                 )
                 NavigationBarItem(
                     selected = selectedTab == AppTab.BUCKETS,
                     onClick = { selectedTab = AppTab.BUCKETS },
-                    icon = { Icon(AppIcons.Buckets, contentDescription = "Buckets") },
-                    label = { Text("Buckets") },
+                    icon = { Icon(AppIcons.Buckets, contentDescription = "Bags") },
+                    label = { Text("Bags") },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = colors.primary.copy(alpha = 0.2f),
+                        selectedIconColor = colors.primary,
+                        selectedTextColor = colors.primary,
+                    ),
                 )
                 NavigationBarItem(
                     selected = selectedTab == AppTab.SCHEDULE,
                     onClick = { selectedTab = AppTab.SCHEDULE },
-                    icon = { Icon(AppIcons.Schedule, contentDescription = "Schedule") },
-                    label = { Text("Schedule") },
+                    icon = { Icon(AppIcons.Schedule, contentDescription = "Routines") },
+                    label = { Text("Routines") },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = colors.primary.copy(alpha = 0.2f),
+                        selectedIconColor = colors.primary,
+                        selectedTextColor = colors.primary,
+                    ),
                 )
                 NavigationBarItem(
                     selected = selectedTab == AppTab.ANALYSIS,
                     onClick = { selectedTab = AppTab.ANALYSIS },
                     icon = { Icon(AppIcons.Analysis, contentDescription = "Analysis") },
                     label = { Text("Analysis") },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = colors.primary.copy(alpha = 0.2f),
+                        selectedIconColor = colors.primary,
+                        selectedTextColor = colors.primary,
+                    ),
                 )
             }
         }
@@ -221,51 +256,35 @@ fun SetupScreen(
     if (showSelectBucketPrompt) {
         AlertDialog(
             onDismissRequest = { showSelectBucketPrompt = false },
-            title = { Text("Choose a Focus Bucket") },
+            title = { Text("Choose a Focus Bag") },
             text = {
                 Column {
                     Text(
-                        text = "Select which bucket of apps you need for this focus period. Phone and Messages are always permanently available.",
+                        text = "Select which bag of apps you need for this focus period. Phone and Messages are permanently available.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(14.dp))
                     settings.buckets.forEach { bucket ->
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (settings.selectedBucketId == bucket.id) {
-                                    colors.primary.copy(alpha = 0.2f)
-                                } else {
-                                    colors.surface
-                                },
-                            ),
-                            shape = RoundedCornerShape(14.dp),
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = colors.surfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
+                                .clip(RoundedCornerShape(12.dp))
                                 .clickable {
                                     onSelectBucket(bucket.id)
                                     showSelectBucketPrompt = false
                                     onStart()
                                 },
                         ) {
-                            Row(
+                            Text(
+                                text = "${bucket.name} (${bucket.appPackages.size} apps)",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        text = bucket.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                    Text(
-                                        text = "${bucket.appPackages.size} / 5 apps configured",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = colors.onSurfaceVariant,
-                                    )
-                                }
-                            }
+                            )
                         }
                     }
                 }
@@ -281,12 +300,12 @@ fun SetupScreen(
     renameBucketTarget?.let { bucket ->
         AlertDialog(
             onDismissRequest = { renameBucketTarget = null },
-            title = { Text("Rename Bucket") },
+            title = { Text("Rename Bag") },
             text = {
                 OutlinedTextField(
                     value = renameText,
                     onValueChange = { renameText = it },
-                    label = { Text("Bucket name") },
+                    label = { Text("Bag name") },
                     singleLine = true,
                 )
             },
@@ -302,6 +321,58 @@ fun SetupScreen(
             },
             dismissButton = {
                 TextButton(onClick = { renameBucketTarget = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    // Custom Minutes Dialog (Allows 1 to 720 minutes / 12h)
+    if (showCustomMinutesDialog) {
+        AlertDialog(
+            onDismissRequest = { showCustomMinutesDialog = false },
+            title = { Text("Custom Focus Duration") },
+            text = {
+                Column {
+                    Text(
+                        text = "Enter desired duration in minutes (up to 720 min / 12 hours):",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = customMinutesInput,
+                        onValueChange = {
+                            if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                                customMinutesInput = it
+                            }
+                        },
+                        label = { Text("Minutes") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    val parsed = customMinutesInput.toIntOrNull() ?: 0
+                    if (parsed > 0) {
+                        Text(
+                            text = "Equals: ${formatMinutes(parsed)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.primary,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val parsed = customMinutesInput.toIntOrNull()
+                        if (parsed != null && parsed > 0) {
+                            onMinutes(parsed.coerceIn(5, 720))
+                        }
+                        showCustomMinutesDialog = false
+                    },
+                ) { Text("Set") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCustomMinutesDialog = false }) { Text("Cancel") }
             },
         )
     }
@@ -325,6 +396,7 @@ private fun MainTimerTab(
     settings: BreakSettings,
     onMinutes: (Int) -> Unit,
     onSelectBucket: (String?) -> Unit,
+    onOpenCustom: () -> Unit,
     onStart: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -333,11 +405,11 @@ private fun MainTimerTab(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(horizontal = 22.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        // Top app title
+        // Top App Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -345,7 +417,7 @@ private fun MainTimerTab(
         ) {
             Column {
                 Text(
-                    text = "Break Mode",
+                    text = "FocusBro",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = colors.onBackground,
@@ -372,9 +444,9 @@ private fun MainTimerTab(
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
 
-        // Center: Big Timer Display + Big Slider
+        // Center: Big Digital Clock + Slider + Presets
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -390,7 +462,7 @@ private fun MainTimerTab(
             Text(
                 text = timeDisplay,
                 style = TextStyle(
-                    fontSize = 68.sp,
+                    fontSize = 72.sp,
                     fontWeight = FontWeight.Light,
                     letterSpacing = 2.sp,
                     fontFeatureSettings = "tnum",
@@ -404,37 +476,56 @@ private fun MainTimerTab(
                 color = colors.onSurfaceVariant,
             )
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // Big continuous slider (5 min to 480 min)
+            // Continuous Slider (5 min to 720 min / 12h)
             Slider(
                 value = settings.minutes.toFloat(),
-                onValueChange = { onMinutes(((it / 5f).roundToInt() * 5).coerceIn(5, 480)) },
-                valueRange = 5f..480f,
-                steps = 94,
+                onValueChange = { onMinutes(((it / 5f).roundToInt() * 5).coerceIn(5, 720)) },
+                valueRange = 5f..720f,
+                steps = 142,
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
 
-            // Quick preset chips
+            // Preset Chips (up to 12h + Custom)
+            val presets = listOf(15, 30, 45, 60, 120, 180, 360, 720)
+            val isCustom = settings.minutes !in presets
+
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                listOf(15, 30, 45, 60, 120, 240, 480).forEach { minsVal ->
+                presets.forEach { minsVal ->
                     FilterChip(
                         selected = settings.minutes == minsVal,
                         onClick = { onMinutes(minsVal) },
                         label = { Text(formatMinutes(minsVal)) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = colors.primary,
+                            selectedLabelColor = colors.onPrimary,
+                        ),
                     )
                 }
+                // Custom Chip
+                FilterChip(
+                    selected = isCustom,
+                    onClick = onOpenCustom,
+                    label = {
+                        Text(if (isCustom) "Custom (${formatMinutes(settings.minutes)})" else "Custom...")
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = colors.primary,
+                        selectedLabelColor = colors.onPrimary,
+                    ),
+                )
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
 
-        // Bucket Selection section
+        // Bag Quick Selector
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -442,7 +533,7 @@ private fun MainTimerTab(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "SELECT BUCKET",
+                    text = "SELECT ACTIVE BAG",
                     style = MaterialTheme.typography.labelSmall,
                     letterSpacing = 1.2.sp,
                     color = colors.onSurfaceVariant,
@@ -465,31 +556,28 @@ private fun MainTimerTab(
                         onClick = { onSelectBucket(bucket.id) },
                         label = { Text(bucket.name) },
                         modifier = Modifier.weight(1f),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = colors.primary.copy(alpha = 0.2f),
+                            selectedLabelColor = colors.primary,
+                        ),
                     )
                 }
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
 
-        // Big "Start Focus Mode" button
-        Button(
-            onClick = onStart,
-            shape = RoundedCornerShape(18.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-        ) {
-            Text(
-                text = "Start ${formatMinutes(settings.minutes)} focus",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
+        // SLIDE TO START (Deliberate tactile start slider)
+        SlideToAction(
+            text = "SLIDE TO START",
+            onAction = onStart,
+            completedTrackColor = colors.primary,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
-// -------------------------------------------------------------- TAB 2: BUCKETS
+// -------------------------------------------------------------- TAB 2: BAGS (BUCKETS)
 @Composable
 private fun BucketsPageTab(
     buckets: List<AppBucket>,
@@ -499,48 +587,67 @@ private fun BucketsPageTab(
     onStartRename: (AppBucket) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    val activeBucket = buckets.firstOrNull { it.id == selectedBucketId } ?: buckets.firstOrNull()
+
+    val getAppLabel: (String) -> String = remember(context) {
+        { pkg ->
+            runCatching {
+                val info = context.packageManager.getApplicationInfo(pkg, 0)
+                context.packageManager.getApplicationLabel(info).toString()
+            }.getOrDefault(pkg)
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .padding(18.dp),
     ) {
         Text(
-            text = "App Buckets",
+            text = "Focus Bags",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = "Configure up to 5 apps for each mode. Phone and Messages are permanently available in all modes.",
+            text = "Pack essential apps for each mode (up to 6 apps per bag). Phone and Messages are permanently available.",
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant,
         )
 
         Spacer(Modifier.height(16.dp))
 
-        buckets.forEach { bucket ->
-            val isSelected = bucket.id == selectedBucketId
+        // Graphic Suitcases Row (BlockIt inspired)
+        SuitcasesRow(
+            buckets = buckets,
+            selectedBucketId = activeBucket?.id,
+            onSelectBucket = { onSelectBucket(it) },
+            activeColor = colors.primary,
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Active Bag Card & App Slots
+        activeBucket?.let { bucket ->
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isSelected) colors.primary.copy(alpha = 0.12f) else colors.surface,
-                ),
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
+                shape = RoundedCornerShape(22.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Column(Modifier.padding(16.dp)) {
+                Column(Modifier.padding(18.dp)) {
+                    // Header with Rename
                     Row(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(Modifier.weight(1f)) {
+                        Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = bucket.name,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
                                 )
                                 IconButton(
                                     onClick = { onStartRename(bucket) },
@@ -555,85 +662,143 @@ private fun BucketsPageTab(
                                 }
                             }
                             Text(
-                                text = "${bucket.appPackages.size} of 5 essential apps",
+                                text = "${bucket.appPackages.size} of ${AppBucket.MAX_APPS_PER_BUCKET} packed apps",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = colors.onSurfaceVariant,
+                                color = colors.primary,
                             )
                         }
 
-                        if (!isSelected) {
-                            TextButton(onClick = { onSelectBucket(bucket.id) }) {
-                                Text("Select")
-                            }
-                        } else {
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = colors.primary,
-                            ) {
-                                Text(
-                                    text = "Active",
-                                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold),
-                                    color = colors.onPrimary,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                )
-                            }
+                        Button(
+                            onClick = { onOpenBucketPicker(bucket.id) },
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                horizontal = 14.dp,
+                                vertical = 6.dp,
+                            ),
+                        ) {
+                            Text("Edit Apps")
                         }
                     }
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(16.dp))
 
-                    // App slots display
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    ) {
-                        bucket.appPackages.forEach { pkg ->
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(colors.surfaceVariant.copy(alpha = 0.5f)),
-                                contentAlignment = Alignment.Center,
+                    // 6 App Slots Grid (2 rows of 3)
+                    val appList = bucket.appPackages.toList()
+                    val totalSlots = AppBucket.MAX_APPS_PER_BUCKET
+
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        for (row in 0 until (totalSlots + 2) / 3) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
-                                AppIcon(packageName = pkg, size = 34.dp)
-                            }
-                        }
-                        val emptySlots = (5 - bucket.appPackages.size).coerceAtLeast(0)
-                        repeat(emptySlots) {
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(colors.surfaceVariant.copy(alpha = 0.25f))
-                                    .clickable { onOpenBucketPicker(bucket.id) },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Add app",
-                                    tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(18.dp),
-                                )
+                                for (col in 0 until 3) {
+                                    val index = row * 3 + col
+                                    if (index < totalSlots) {
+                                        val pkg = appList.getOrNull(index)
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(84.dp)
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .background(
+                                                    if (pkg != null) Color(0xFF19191E) else Color(0xFF141417),
+                                                )
+                                                .clickable { onOpenBucketPicker(bucket.id) }
+                                                .padding(6.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            if (pkg != null) {
+                                                Column(
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                                    verticalArrangement = Arrangement.Center,
+                                                ) {
+                                                    AppIcon(packageName = pkg, size = 38.dp)
+                                                    Spacer(Modifier.height(4.dp))
+                                                    Text(
+                                                        text = getAppLabel(pkg),
+                                                        style = TextStyle(fontSize = 10.sp),
+                                                        color = colors.onBackground,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        textAlign = TextAlign.Center,
+                                                    )
+                                                }
+                                            } else {
+                                                Column(
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                                    verticalArrangement = Arrangement.Center,
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Add,
+                                                        contentDescription = "Add app",
+                                                        tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                                                        modifier = Modifier.size(22.dp),
+                                                    )
+                                                    Spacer(Modifier.height(2.dp))
+                                                    Text(
+                                                        text = "Add slot",
+                                                        style = TextStyle(fontSize = 9.sp),
+                                                        color = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
+                }
+            }
+        }
 
-                    Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
-                    OutlinedButton(
-                        onClick = { onOpenBucketPicker(bucket.id) },
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Edit apps (${bucket.appPackages.size}/5)")
+        // Life / Parachute Info Card (100% Free)
+        Card(
+            colors = CardDefaults.cardColors(containerColor = colors.surface),
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF241515),
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "Life",
+                            tint = Color(0xFFFF5252),
+                            modifier = Modifier.size(20.dp),
+                        )
                     }
+                }
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = "1 Daily Emergency Life",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "Allows an emergency exit once a day, resetting at midnight. 100% free with no in-app purchases or subscriptions.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                    )
                 }
             }
         }
     }
 }
 
-// ------------------------------------------------------------ TAB 3: SCHEDULES
+// ------------------------------------------------------------ TAB 3: SCHEDULES (ROUTINES)
 @Composable
 private fun SchedulesPageTab(
     schedules: List<FocusSchedule>,
@@ -648,7 +813,7 @@ private fun SchedulesPageTab(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .padding(18.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -657,12 +822,12 @@ private fun SchedulesPageTab(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = "Automated Schedules",
+                    text = "Automatic Routines",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "Activate focus mode automatically at recurring times.",
+                    text = "Lock down automatically at scheduled times.",
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant,
                 )
@@ -671,53 +836,13 @@ private fun SchedulesPageTab(
                 onClick = onAddClick,
                 shape = RoundedCornerShape(14.dp),
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("Add")
             }
         }
 
         Spacer(Modifier.height(16.dp))
-
-        val context = LocalContext.current
-        val canExact = remember(context) { FocusScheduleManager.canScheduleExact(context) }
-        if (!canExact) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = colors.errorContainer.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                data = Uri.parse("package:${context.packageName}")
-                            }
-                            runCatching { context.startActivity(intent) }
-                        }
-                    },
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = "Exact Alarm Permission Required",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.onErrorContainer,
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = "Tap to grant permission in Settings so schedules turn on automatically at the exact minute.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onErrorContainer.copy(alpha = 0.85f),
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.height(14.dp))
-        }
 
         if (schedules.isEmpty()) {
             Card(
@@ -732,13 +857,13 @@ private fun SchedulesPageTab(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "No schedules created yet",
+                        text = "No routines created yet",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Tap 'Add' to set up automatic focus times for bedtime, study, or deep work.",
+                        text = "Tap '+ Add' to set up automatic focus blocks for bedtime, study, or deep work.",
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -748,55 +873,87 @@ private fun SchedulesPageTab(
         } else {
             schedules.forEach { schedule ->
                 val bucketName = buckets.firstOrNull { it.id == schedule.bucketId }?.name ?: "All apps"
+                val startStr = String.format("%02d:%02d", schedule.startHour, schedule.startMinute)
+                val endTotalMins = (schedule.startHour * 60 + schedule.startMinute + schedule.durationMinutes) % (24 * 60)
+                val endStr = String.format("%02d:%02d", endTotalMins / 60, endTotalMins % 60)
+
                 Card(
                     colors = CardDefaults.cardColors(containerColor = colors.surface),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(22.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 6.dp),
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(18.dp),
-                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = schedule.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            val startStr = String.format("%02d:%02d", schedule.startHour, schedule.startMinute)
-                            val endTotalMins = (schedule.startHour * 60 + schedule.startMinute + schedule.durationMinutes) % (24 * 60)
-                            val endStr = String.format("%02d:%02d", endTotalMins / 60, endTotalMins % 60)
-                            Text(
-                                text = "$startStr → $endStr (${formatMinutes(schedule.durationMinutes)}) · $bucketName",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colors.primary,
-                            )
-                            val dayLabels = listOf("S", "M", "T", "W", "T", "F", "S")
-                            val activeDaysStr = schedule.daysOfWeek
-                                .sorted()
-                                .mapNotNull { if (it in 1..7) dayLabels[it - 1] else null }
-                                .joinToString(" ")
-                            Text(
-                                text = "Days: $activeDaysStr",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = colors.onSurfaceVariant,
+                        // Title row with switch & delete
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = schedule.name.uppercase(),
+                                    style = TextStyle(
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 2.sp,
+                                    ),
+                                    color = if (schedule.enabled) colors.primary else colors.onSurfaceVariant,
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Text(
+                                        text = "$startStr → $endStr",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = colors.primary.copy(alpha = 0.15f),
+                                    ) {
+                                        Text(
+                                            text = formatMinutes(schedule.durationMinutes),
+                                            style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                                            color = colors.primary,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Bag: $bucketName",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colors.onSurfaceVariant,
+                                )
+                            }
+
+                            IconButton(onClick = { onDelete(schedule.id) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                            Switch(
+                                checked = schedule.enabled,
+                                onCheckedChange = { onToggle(schedule.id, it) },
                             )
                         }
-                        IconButton(onClick = { onDelete(schedule.id) }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete schedule",
-                                tint = colors.onSurfaceVariant.copy(alpha = 0.6f),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                        Switch(
-                            checked = schedule.enabled,
-                            onCheckedChange = { onToggle(schedule.id, it) },
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // Day of week chips row (BlockIt inspired)
+                        DayOfWeekSelector(
+                            selectedDays = schedule.daysOfWeek,
+                            onToggleDay = {},
+                            activeColor = if (schedule.enabled) colors.primary else Color(0xFF44444A),
                         )
                     }
                 }
@@ -812,12 +969,13 @@ private fun AnalysisPageTab(
     settings: BreakSettings,
     dndAccess: Boolean,
     accessibilityAccess: Boolean,
+    overlayAccess: Boolean,
     notificationsEnabled: Boolean,
     onPauseInterruptions: (Boolean) -> Unit,
     onRequireUnlock: (Boolean) -> Unit,
-    onWallpaper: (Wallpaper) -> Unit,
     onRequestDndAccess: () -> Unit,
     onRequestAccessibilityAccess: () -> Unit,
+    onRequestOverlayAccess: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -884,28 +1042,21 @@ private fun AnalysisPageTab(
                     onClick = if (!accessibilityAccess) onRequestAccessibilityAccess else null,
                 )
                 SettingRow(
+                    title = "Lockdown mode (Display over apps)",
+                    subtitle = when {
+                        overlayAccess -> "Keeps FocusBro locked as your home screen during active sessions."
+                        else -> "Permission needed to prevent exiting to launcher. Tap to allow."
+                    },
+                    subtitleIsWarning = !overlayAccess,
+                    checked = overlayAccess,
+                    onCheckedChange = { onRequestOverlayAccess() },
+                    onClick = onRequestOverlayAccess,
+                )
+                SettingRow(
                     title = "Require unlock to end",
                     subtitle = "Phone lock required for Life exit.",
                     checked = settings.requireUnlockToEnd,
                     onCheckedChange = onRequireUnlock,
-                )
-            }
-        }
-
-        Spacer(Modifier.height(20.dp))
-        Text(
-            text = "BREAK BACKGROUND",
-            style = MaterialTheme.typography.labelSmall,
-            letterSpacing = 1.4.sp,
-            color = colors.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Wallpaper.entries.forEach { wallpaper ->
-                WallpaperSwatch(
-                    wallpaper = wallpaper,
-                    selected = settings.wallpaper == wallpaper,
-                    onClick = { onWallpaper(wallpaper) },
                 )
             }
         }
@@ -927,8 +1078,6 @@ private fun AddScheduleDialog(
     var endMinute by remember { mutableIntStateOf(0) }
     var selectedDays by remember { mutableStateOf(setOf(1, 2, 3, 4, 5, 6, 7)) } // Everyday
     var selectedBucketId by remember { mutableStateOf(buckets.firstOrNull()?.id ?: "default") }
-
-    val dayNames = listOf("S", "M", "T", "W", "T", "F", "S")
 
     val calculateDuration = { sH: Int, sM: Int, eH: Int, eM: Int ->
         val startTotal = sH * 60 + sM
@@ -967,13 +1116,13 @@ private fun AddScheduleDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Focus Schedule") },
+        title = { Text("Add Focus Routine") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Schedule name") },
+                    label = { Text("Routine name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -1057,52 +1206,44 @@ private fun AddScheduleDialog(
                     }
                 }
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Total Focus Duration: ${formatMinutes(duration)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    text = "Total focus duration: ${formatMinutes(duration)}",
+                    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
                     color = MaterialTheme.colorScheme.primary,
                 )
 
-                Spacer(Modifier.height(14.dp))
-                Text(text = "Repeat on", style = MaterialTheme.typography.labelMedium)
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    (1..7).forEach { day ->
-                        val isSelected = day in selectedDays
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = {
-                                selectedDays = if (isSelected) {
-                                    if (selectedDays.size > 1) selectedDays - day else selectedDays
-                                } else {
-                                    selectedDays + day
-                                }
-                            },
-                            label = { Text(dayNames[day - 1]) },
-                        )
-                    }
-                }
+                Spacer(Modifier.height(16.dp))
 
-                if (buckets.isNotEmpty()) {
-                    Spacer(Modifier.height(14.dp))
-                    Text(text = "App Bucket", style = MaterialTheme.typography.labelMedium)
-                    Spacer(Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        buckets.forEach { bucket ->
-                            FilterChip(
-                                selected = selectedBucketId == bucket.id,
-                                onClick = { selectedBucketId = bucket.id },
-                                label = { Text(bucket.name) },
-                            )
+                // Days selection
+                Text(text = "Repeat on days", style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(8.dp))
+                DayOfWeekSelector(
+                    selectedDays = selectedDays,
+                    onToggleDay = { day ->
+                        selectedDays = if (day in selectedDays) {
+                            if (selectedDays.size > 1) selectedDays - day else selectedDays
+                        } else {
+                            selectedDays + day
                         }
+                    },
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                // Bag selection
+                Text(text = "Allowed Bag", style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    buckets.forEach { b ->
+                        FilterChip(
+                            selected = selectedBucketId == b.id,
+                            onClick = { selectedBucketId = b.id },
+                            label = { Text(b.name) },
+                        )
                     }
                 }
             }
@@ -1110,19 +1251,17 @@ private fun AddScheduleDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (name.isNotBlank()) {
-                        onConfirm(
-                            FocusSchedule(
-                                name = name.trim(),
-                                startHour = startHour,
-                                startMinute = startMinute,
-                                durationMinutes = duration,
-                                daysOfWeek = selectedDays,
-                                bucketId = selectedBucketId,
-                                enabled = true,
-                            ),
-                        )
-                    }
+                    onConfirm(
+                        FocusSchedule(
+                            name = name.ifBlank { "Routine" },
+                            startHour = startHour,
+                            startMinute = startMinute,
+                            durationMinutes = duration,
+                            daysOfWeek = selectedDays,
+                            bucketId = selectedBucketId,
+                            enabled = true,
+                        ),
+                    )
                 },
             ) { Text("Save") }
         },
@@ -1132,12 +1271,13 @@ private fun AddScheduleDialog(
     )
 }
 
+// ------------------------------------------------------------- SHARED HELPERS
 @Composable
 private fun StatsCard(history: List<BreakRecord>) {
     val colors = MaterialTheme.colorScheme
-    val week = lastSevenDays(history)
-    val today = todayMinutes(history)
-    val peak = week.maxOrNull()?.coerceAtLeast(1) ?: 1
+    val lastSeven = remember(history) { lastSevenDays(history) }
+    val todayMin = remember(history) { todayMinutes(history) }
+    val maxDay = (lastSeven.maxOrNull() ?: 0).coerceAtLeast(60)
 
     Card(
         colors = CardDefaults.cardColors(containerColor = colors.surface),
@@ -1145,52 +1285,76 @@ private fun StatsCard(history: List<BreakRecord>) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Column(Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
                     Text(
-                        text = "Today",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = "TODAY",
+                        style = MaterialTheme.typography.labelSmall,
+                        letterSpacing = 1.4.sp,
                         color = colors.onSurfaceVariant,
                     )
                     Text(
-                        text = if (today == 0) "No break yet" else formatMinutes(today),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        text = formatMinutes(todayMin),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.primary,
                     )
                 }
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.height(48.dp),
-                ) {
-                    week.forEachIndexed { index, minutes ->
-                        val height = if (minutes == 0) {
-                            6.dp
-                        } else {
-                            (10 + 38f * (minutes.toFloat() / peak.toFloat())).dp
+                Text(
+                    text = "${history.size} total sessions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                )
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            // 7-day Bar chart
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(90.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                val dayLabels = listOf("6d ago", "5d", "4d", "3d", "2d", "Yest", "Today")
+                lastSeven.forEachIndexed { i, mins ->
+                    val fraction = (mins.toFloat() / maxDay).coerceIn(0.06f, 1f)
+                    val isToday = i == 6
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        if (mins > 0) {
+                            Text(
+                                text = "${mins}m",
+                                style = TextStyle(fontSize = 9.sp),
+                                color = if (isToday) colors.primary else colors.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(2.dp))
                         }
                         Box(
                             modifier = Modifier
-                                .width(10.dp)
-                                .height(height)
-                                .clip(RoundedCornerShape(5.dp))
+                                .width(22.dp)
+                                .fillMaxHeight(fraction)
+                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
                                 .background(
-                                    if (index == week.lastIndex) {
-                                        colors.primary
-                                    } else {
-                                        colors.primary.copy(alpha = if (minutes == 0) 0.18f else 0.45f)
-                                    },
+                                    if (isToday) colors.primary else colors.surfaceVariant,
                                 ),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = dayLabels[i],
+                            style = TextStyle(fontSize = 9.sp),
+                            color = if (isToday) colors.onBackground else colors.onSurfaceVariant,
                         )
                     }
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Last 7 days · ${formatMinutes(week.sum())}",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant,
-            )
         }
     }
 }
@@ -1229,35 +1393,5 @@ private fun SettingRow(
         }
         Spacer(Modifier.width(12.dp))
         Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
-}
-
-@Composable
-private fun WallpaperSwatch(wallpaper: Wallpaper, selected: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(wallpaperSwatch(wallpaper))
-                .clickable(onClick = onClick),
-        ) {
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(colors.primary),
-                )
-            }
-        }
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = wallpaper.title,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (selected) colors.onBackground else colors.onSurfaceVariant,
-        )
     }
 }
