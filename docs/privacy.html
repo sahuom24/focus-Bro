@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - FocusBro (Break Mode)</title>
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-color: #1e293b;
+      --heading-color: #0f172a;
+      --muted-color: #64748b;
+      --border-color: #e2e8f0;
+      --accent-color: #2563eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #0f172a;
+        --card-bg: #1e293b;
+        --text-color: #cbd5e1;
+        --heading-color: #f8fafc;
+        --muted-color: #94a3b8;
+        --border-color: #334155;
+        --accent-color: #38bdf8;
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 24px 16px;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 36px 32px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border-color);
+    }
+    h1, h2, h3 {
+      color: var(--heading-color);
+      margin-top: 28px;
+      margin-bottom: 12px;
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 1.85rem;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+    .meta {
+      font-size: 0.9rem;
+      color: var(--muted-color);
+      margin-bottom: 24px;
+    }
+    .highlight-box {
+      background-color: rgba(37, 99, 235, 0.08);
+      border-left: 4px solid var(--accent-color);
+      padding: 16px;
+      border-radius: 6px;
+      margin: 20px 0;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    a {
+      color: var(--accent-color);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Privacy Policy for FocusBro (Break Mode)</h1>
+    <div class="meta">
+      <strong>Last Updated:</strong> November 24, 2026<br>
+      <strong>Effective Date:</strong> November 24, 2026
+    </div>
+
+    <div class="highlight-box">
+      <strong>Key Summary:</strong> FocusBro (<code>dev.breakmode</code>) is 100% offline. It does not collect, track, or share any personal data. It does not even request the Internet permission (<code>android.permission.INTERNET</code>).
+    </div>
+
+    <h2>1. Overview and Core Privacy Principle</h2>
+    <p>FocusBro is designed to help you regain focus and take mindful breaks without sacrificing your privacy. We believe your device usage and focus habits are entirely personal to you. Therefore:</p>
+    <ul>
+      <li><strong>No Data Collection:</strong> We do not collect, transmit, store remotely, sell, or share any personal information, app usage habits, or device identifiers.</li>
+      <li><strong>No Internet Permission:</strong> The app does not declare or use <code>android.permission.INTERNET</code>. It cannot connect to external servers or transmit information off your device.</li>
+      <li><strong>No Third-Party Trackers:</strong> No advertising SDKs, analytics frameworks, crash-reporting suites, or third-party trackers are included in the app.</li>
+    </ul>
+
+    <h2>2. Device Permissions & On-Device Processing</h2>
+    <p>FocusBro requires specific permissions to operate its distraction-blocking and timer features strictly on your device:</p>
+
+    <h3>Accessibility Service (<code>BIND_ACCESSIBILITY_SERVICE</code>)</h3>
+    <p>FocusBro includes an optional Accessibility Service (<code>FocusAccessibilityService</code>) used solely to:</p>
+    <ul>
+      <li>Detect the foreground package name during an active focus session. When you open an app that was not selected for your break, FocusBro displays a gentle reminder screen to keep you focused.</li>
+      <li><strong>Privacy Guarantee:</strong> The Accessibility Service <em>does not</em> read, store, or log any screen text, typing, passwords, or personal messages. It operates entirely on-device and can be turned on or off in Android Settings at any time.</li>
+    </ul>
+
+    <h3>Accessibility & System Overlay (<code>SYSTEM_ALERT_WINDOW</code>)</h3>
+    <p>Used to display the focus reminder screen over restricted applications during an active break.</p>
+
+    <h3>Notification Management</h3>
+    <ul>
+      <li><strong>Post Notifications (<code>POST_NOTIFICATIONS</code>):</strong> Displays the ongoing timer status and break completion notifications.</li>
+      <li><strong>Do Not Disturb Access (<code>ACCESS_NOTIFICATION_POLICY</code>):</strong> Optionally silences incoming notifications during your focus session and restores your previous sound profile when the session ends. No notifications are intercepted or read.</li>
+    </ul>
+
+    <h3>Scheduling & Alarms (<code>SCHEDULE_EXACT_ALARM</code> & <code>USE_EXACT_ALARM</code>)</h3>
+    <p>Triggers user-scheduled focus sessions down to the exact second, even when the phone is in deep Doze mode.</p>
+
+    <h3>Startup on Boot (<code>RECEIVE_BOOT_COMPLETED</code>)</h3>
+    <p>Restores active timers and scheduled focus sessions after your device restarts.</p>
+
+    <h3>App Package Queries (<code>&lt;queries&gt;</code>)</h3>
+    <p>Allows the app to display a local list of installed apps so you can choose which essential tools (e.g., Phone, SMS, Calendar, UPI) stay accessible during a break. This list is processed solely in local device memory.</p>
+
+    <h2>3. Data Storage & Deletion</h2>
+    <p>All settings, whitelist configurations, and session records are stored inside the app's local private sandbox (<code>SharedPreferences</code>). Device backups are disabled (<code>allowBackup="false"</code>). You can delete all app data instantly by uninstalling the app or clearing storage in device settings.</p>
+
+    <h2>4. Children's Privacy</h2>
+    <p>FocusBro is safe for users of all ages and does not collect any personal data from anyone, including children under 13.</p>
+
+    <h2>5. Contact Us</h2>
+    <p>If you have any questions about this Privacy Policy, please reach out:</p>
+    <ul>
+      <li><strong>GitHub:</strong> <a href="https://github.com/sahuom24/focus-Bro" target="_blank" rel="noopener">https://github.com/sahuom24/focus-Bro</a></li>
+      <li><strong>Email:</strong> <a href="mailto:imsahuom@gmail.com">imsahuom@gmail.com</a></li>
+    </ul>
+  </div>
+</body>
+</html>
