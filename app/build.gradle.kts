@@ -11,10 +11,10 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "dev.breakmode"
+        applicationId = "com.focusbro.myapp"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
+        versionCode = 6
         versionName = "1.1.1"
         resourceConfigurations += listOf("en")
     }

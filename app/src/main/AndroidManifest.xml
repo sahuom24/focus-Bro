@@ -5,7 +5,7 @@
       POST_NOTIFICATIONS: shows the ongoing break status and the "break complete" notice.
       ACCESS_NOTIFICATION_POLICY: optional, user-granted special access that lets the app
       silence interruptions for the duration of a break.
-      SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM: allows automated focus schedules to start
+      SCHEDULE_EXACT_ALARM: allows user-configured automated focus schedules to start
       down to the exact second even in deep Doze mode.
       RECEIVE_BOOT_COMPLETED: restores scheduled alarms and active breaks on reboot.
       WAKE_LOCK: ensures alarms and receivers wake the device to trigger focus mode.
@@ -13,7 +13,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />

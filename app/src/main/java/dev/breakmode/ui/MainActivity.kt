@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.breakmode.session.BreakNotifier
@@ -277,7 +278,11 @@ fun BreakModeApp(viewModel: BreakViewModel) {
 
     if (showAccessibilityExplain) {
         AlertDialog(
-            onDismissRequest = { showAccessibilityExplain = false },
+            onDismissRequest = { /* Require explicit user button choice per Accessibility API policy */ },
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false,
+            ),
             title = {
                 Text(
                     text = "AccessibilityService API Disclosure",
@@ -293,7 +298,7 @@ fun BreakModeApp(viewModel: BreakViewModel) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "FocusBro uses the AccessibilityService API to detect and prevent digital distractions during active focus sessions.",
+                        text = "FocusBro (Break Mode) uses the AccessibilityService API to detect and prevent digital distractions during active focus sessions.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
