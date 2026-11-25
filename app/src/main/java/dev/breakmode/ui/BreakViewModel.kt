@@ -46,9 +46,6 @@ class BreakViewModel(application: Application) : AndroidViewModel(application) {
     private val _accessibilityAccess = MutableStateFlow(false)
     val accessibilityAccess: StateFlow<Boolean> = _accessibilityAccess.asStateFlow()
 
-    private val _overlayAccess = MutableStateFlow(false)
-    val overlayAccess: StateFlow<Boolean> = _overlayAccess.asStateFlow()
-
     private val _notificationsEnabled = MutableStateFlow(true)
     val notificationsEnabled: StateFlow<Boolean> = _notificationsEnabled.asStateFlow()
 
@@ -76,7 +73,6 @@ class BreakViewModel(application: Application) : AndroidViewModel(application) {
         val context = getApplication<Application>()
         _dndAccess.value = Interruptions.hasAccess(context)
         _accessibilityAccess.value = FocusAccessibilityService.isServiceEnabled(context)
-        _overlayAccess.value = FocusAccessibilityService.canDrawOverlays(context)
         _notificationsEnabled.value = Interruptions.notificationsAllowed(context)
     }
 
@@ -94,6 +90,11 @@ class BreakViewModel(application: Application) : AndroidViewModel(application) {
             _justFinishedMinutes.value = null
         }
         return success
+    }
+
+    fun forceEndEarly() {
+        repository.forceEndEarly()
+        _justFinishedMinutes.value = null
     }
 
     fun endBreak(completed: Boolean) {
@@ -130,9 +131,15 @@ class BreakViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleAppInBucket(bucketId: String, packageName: String) =
         repository.toggleAppInBucket(bucketId, packageName)
 
-    fun addSchedule(schedule: FocusSchedule) = repository.addSchedule(schedule)
+    fun addSchedule(schedule: FocusSchedule) {
+        val sanitized = schedule.copy(name = schedule.name.trim().take(32).ifEmpty { "Routine" })
+        repository.addSchedule(sanitized)
+    }
 
-    fun updateSchedule(schedule: FocusSchedule) = repository.updateSchedule(schedule)
+    fun updateSchedule(schedule: FocusSchedule) {
+        val sanitized = schedule.copy(name = schedule.name.trim().take(32).ifEmpty { "Routine" })
+        repository.updateSchedule(sanitized)
+    }
 
     fun deleteSchedule(scheduleId: String) = repository.deleteSchedule(scheduleId)
 

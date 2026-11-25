@@ -82,7 +82,16 @@ class FocusAccessibilityService : AccessibilityService() {
         // Always allow UPI payments, digital wallets, and banking apps so transactions are never interrupted
         if (isUpiOrBankingApp(packageName)) return
 
-        // Do not allow exiting to home screen: lock user in the focus screen
+        // Always allow Android System Settings and Package Installers so the user can always
+        // adjust device settings, disable this service, or uninstall any app per Play Policy.
+        if (packageName == "com.android.settings" ||
+            packageName.endsWith(".settings") ||
+            packageName in PACKAGE_INSTALLER_PACKAGES
+        ) {
+            return
+        }
+
+        // Do not allow exiting to home screen while a focus session is active
         if (isLauncherPackage(packageName)) {
             val intent = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -90,15 +99,8 @@ class FocusAccessibilityService : AccessibilityService() {
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or
                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             }
-            startActivity(intent)
+            runCatching { startActivity(intent) }
             return
-        }
-
-        // For system settings: allow essential controls and authentication dialogs
-        if (packageName == "com.android.settings" || packageName.endsWith(".settings")) {
-            if (isAllowedSettingsScreen(className)) {
-                return
-            }
         }
 
         // The app is not allowed: restrict it immediately
@@ -114,7 +116,7 @@ class FocusAccessibilityService : AccessibilityService() {
                 Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             putExtra(EXTRA_BLOCKED_PACKAGE, packageName)
         }
-        startActivity(intent)
+        runCatching { startActivity(intent) }
 
         val now = System.currentTimeMillis()
         if (now - lastToastTime > TOAST_INTERVAL_MS) {
@@ -189,44 +191,6 @@ class FocusAccessibilityService : AccessibilityService() {
             lowerClass.contains("devicecredential")
     }
 
-    private fun isAllowedSettingsScreen(className: String): Boolean {
-        val lower = className.lowercase()
-
-        // Explicitly allow biometric, fingerprint, face, pattern, PIN, password verification dialogs
-        if (lower.contains("fingerprint") ||
-            lower.contains("biometric") ||
-            lower.contains("face") ||
-            lower.contains("credential") ||
-            lower.contains("confirmlock") ||
-            lower.contains("password") ||
-            lower.contains("pattern") ||
-            lower.contains("pin") ||
-            lower.contains("auth") ||
-            lower.contains("security")
-        ) {
-            return true
-        }
-
-        // Strictly prevent tampering / force-stopping
-        if (lower.contains("installedappdetails") ||
-            lower.contains("manageapplications") ||
-            lower.contains("appinfo") ||
-            lower.contains("specialaccess")
-        ) {
-            return false
-        }
-        // Essential Android settings (DND, sound, notifications, panels, quick settings)
-        return lower.contains("zenmode") ||
-            lower.contains("sound") ||
-            lower.contains("notification") ||
-            lower.contains("volume") ||
-            lower.contains("panel") ||
-            lower.contains("display") ||
-            lower.contains("bluetooth") ||
-            lower.contains("wifi") ||
-            lower.contains("network")
-    }
-
     private fun isUpiOrBankingApp(packageName: String): Boolean {
         if (packageName in UPI_AND_BANKING_PACKAGES) return true
         return runCatching {
@@ -277,6 +241,16 @@ class FocusAccessibilityService : AccessibilityService() {
             "com.fedmobile",                          // FedMobile
             "com.idfcfirstbank.optimus",              // IDFC FIRST
             "com.myairtelapp",                        // Airtel Thanks
+        )
+
+        val PACKAGE_INSTALLER_PACKAGES = setOf(
+            "com.android.packageinstaller",
+            "com.google.android.packageinstaller",
+            "com.samsung.android.packageinstaller",
+            "com.miui.packageinstaller",
+            "com.oplus.packageinstaller",
+            "com.coloros.packageinstaller",
+            "com.vivo.packageinstaller",
         )
 
         val SYSTEM_PACKAGES = setOf(
@@ -334,30 +308,12 @@ class FocusAccessibilityService : AccessibilityService() {
                 splitter.setString(enabledServices)
                 while (splitter.hasNext()) {
                     val service = splitter.next()
-                    if (service.equals(expectedComponentName, ignoreCase = true) ||
-                        service.contains(context.packageName, ignoreCase = true)
-                    ) {
+                    if (service.equals(expectedComponentName, ignoreCase = true)) {
                         return true
                     }
                 }
                 false
             }.getOrDefault(false)
-        }
-
-        fun canDrawOverlays(context: Context): Boolean {
-            return Settings.canDrawOverlays(context)
-        }
-
-        fun openOverlaySettings(context: Context) {
-            runCatching {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:${context.packageName}"),
-                ).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-                context.startActivity(intent)
-            }
         }
     }
 }

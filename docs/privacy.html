@@ -84,12 +84,12 @@
   <div class="container">
     <h1>Privacy Policy for FocusBro (Break Mode)</h1>
     <div class="meta">
-      <strong>Last Updated:</strong> November 24, 2026<br>
+      <strong>Last Updated:</strong> November 25, 2026<br>
       <strong>Effective Date:</strong> November 24, 2026
     </div>
 
     <div class="highlight-box">
-      <strong>Key Summary:</strong> FocusBro (<code>dev.breakmode</code>) is 100% offline. It does not collect, track, or share any personal data. It does not even request the Internet permission (<code>android.permission.INTERNET</code>).
+      <strong>Key Summary:</strong> FocusBro (<code>com.focusbro.myapp</code>) is 100% offline. It does not collect, track, or share any personal data. It does not even request the Internet permission (<code>android.permission.INTERNET</code>).
     </div>
 
     <h2>1. Overview and Core Privacy Principle</h2>
@@ -106,12 +106,10 @@
     <h3>Accessibility Service (<code>BIND_ACCESSIBILITY_SERVICE</code>)</h3>
     <p>FocusBro includes an optional Accessibility Service (<code>FocusAccessibilityService</code>) used solely to:</p>
     <ul>
-      <li>Detect the foreground package name during an active focus session. When you open an app that was not selected for your break, FocusBro displays a gentle reminder screen to keep you focused.</li>
-      <li><strong>Privacy Guarantee:</strong> The Accessibility Service <em>does not</em> read, store, or log any screen text, typing, passwords, or personal messages. It operates entirely on-device and can be turned on or off in Android Settings at any time.</li>
+      <li>Detect the foreground package name during an active focus session. When you open an app that was not selected for your break, FocusBro brings your FocusBro session screen back to the foreground to keep you focused.</li>
+      <li><strong>User Control:</strong> Android System Settings and package installer/uninstall screens are never blocked, and you can grant, decline, or revoke this permission in Android Settings at any time.</li>
+      <li><strong>Privacy Guarantee:</strong> The Accessibility Service <em>does not</em> read, store, or log any screen text, typing, passwords, or personal messages (<code>canRetrieveWindowContent="false"</code>). It operates entirely on-device and never shares data.</li>
     </ul>
-
-    <h3>Accessibility & System Overlay (<code>SYSTEM_ALERT_WINDOW</code>)</h3>
-    <p>Used to display the focus reminder screen over restricted applications during an active break.</p>
 
     <h3>Notification Management</h3>
     <ul>
@@ -119,8 +117,8 @@
       <li><strong>Do Not Disturb Access (<code>ACCESS_NOTIFICATION_POLICY</code>):</strong> Optionally silences incoming notifications during your focus session and restores your previous sound profile when the session ends. No notifications are intercepted or read.</li>
     </ul>
 
-    <h3>Scheduling & Alarms (<code>SCHEDULE_EXACT_ALARM</code> & <code>USE_EXACT_ALARM</code>)</h3>
-    <p>Triggers user-scheduled focus sessions down to the exact second, even when the phone is in deep Doze mode.</p>
+    <h3>Scheduling &amp; Alarms (<code>SCHEDULE_EXACT_ALARM</code>)</h3>
+    <p>Triggers user-scheduled focus sessions at your configured start time, even when the phone is in Doze mode.</p>
 
     <h3>Startup on Boot (<code>RECEIVE_BOOT_COMPLETED</code>)</h3>
     <p>Restores active timers and scheduled focus sessions after your device restarts.</p>

@@ -96,7 +96,6 @@ fun SetupScreen(
     history: List<BreakRecord>,
     dndAccess: Boolean,
     accessibilityAccess: Boolean,
-    overlayAccess: Boolean = false,
     notificationsEnabled: Boolean,
     allowedLabels: List<String>,
     justFinishedMinutes: Int?,
@@ -116,7 +115,8 @@ fun SetupScreen(
     onWallpaper: (Wallpaper) -> Unit,
     onRequestDndAccess: () -> Unit,
     onRequestAccessibilityAccess: () -> Unit,
-    onRequestOverlayAccess: () -> Unit = {},
+    onOpenAccessibilityDisclosure: () -> Unit = {},
+    onOpenPrivacyPolicy: () -> Unit = {},
     onOpenNotificationSettings: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -186,13 +186,13 @@ fun SetupScreen(
                         settings = settings,
                         dndAccess = dndAccess,
                         accessibilityAccess = accessibilityAccess,
-                        overlayAccess = overlayAccess,
                         notificationsEnabled = notificationsEnabled,
                         onPauseInterruptions = onPauseInterruptions,
                         onRequireUnlock = onRequireUnlock,
                         onRequestDndAccess = onRequestDndAccess,
                         onRequestAccessibilityAccess = onRequestAccessibilityAccess,
-                        onRequestOverlayAccess = onRequestOverlayAccess,
+                        onOpenAccessibilityDisclosure = onOpenAccessibilityDisclosure,
+                        onOpenPrivacyPolicy = onOpenPrivacyPolicy,
                         onOpenNotificationSettings = onOpenNotificationSettings,
                     )
                 }
@@ -651,13 +651,13 @@ private fun BucketsPageTab(
                                 )
                                 IconButton(
                                     onClick = { onStartRename(bucket) },
-                                    modifier = Modifier.size(28.dp),
+                                    modifier = Modifier.size(48.dp),
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Edit,
-                                        contentDescription = "Rename",
+                                        contentDescription = "Rename ${bucket.name}",
                                         tint = colors.onSurfaceVariant,
-                                        modifier = Modifier.size(15.dp),
+                                        modifier = Modifier.size(18.dp),
                                     )
                                 }
                             }
@@ -702,7 +702,7 @@ private fun BucketsPageTab(
                                                 .height(84.dp)
                                                 .clip(RoundedCornerShape(14.dp))
                                                 .background(
-                                                    if (pkg != null) Color(0xFF19191E) else Color(0xFF141417),
+                                                    if (pkg != null) colors.surfaceVariant else colors.surfaceVariant.copy(alpha = 0.55f),
                                                 )
                                                 .clickable { onOpenBucketPicker(bucket.id) }
                                                 .padding(6.dp),
@@ -717,8 +717,8 @@ private fun BucketsPageTab(
                                                     Spacer(Modifier.height(4.dp))
                                                     Text(
                                                         text = getAppLabel(pkg),
-                                                        style = TextStyle(fontSize = 10.sp),
-                                                        color = colors.onBackground,
+                                                        style = TextStyle(fontSize = 11.sp),
+                                                        color = colors.onSurface,
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis,
                                                         textAlign = TextAlign.Center,
@@ -732,14 +732,14 @@ private fun BucketsPageTab(
                                                     Icon(
                                                         imageVector = Icons.Default.Add,
                                                         contentDescription = "Add app",
-                                                        tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                                                        tint = colors.onSurfaceVariant.copy(alpha = 0.7f),
                                                         modifier = Modifier.size(22.dp),
                                                     )
                                                     Spacer(Modifier.height(2.dp))
                                                     Text(
                                                         text = "Add slot",
-                                                        style = TextStyle(fontSize = 9.sp),
-                                                        color = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                                                        style = TextStyle(fontSize = 11.sp),
+                                                        color = colors.onSurfaceVariant.copy(alpha = 0.7f),
                                                     )
                                                 }
                                             }
@@ -969,13 +969,13 @@ private fun AnalysisPageTab(
     settings: BreakSettings,
     dndAccess: Boolean,
     accessibilityAccess: Boolean,
-    overlayAccess: Boolean,
     notificationsEnabled: Boolean,
     onPauseInterruptions: (Boolean) -> Unit,
     onRequireUnlock: (Boolean) -> Unit,
     onRequestDndAccess: () -> Unit,
     onRequestAccessibilityAccess: () -> Unit,
-    onRequestOverlayAccess: () -> Unit,
+    onOpenAccessibilityDisclosure: () -> Unit,
+    onOpenPrivacyPolicy: () -> Unit,
     onOpenNotificationSettings: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -992,7 +992,7 @@ private fun AnalysisPageTab(
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = "Your on-device focus history and device controls.",
+            text = "Your on-device focus history, controls, and privacy.",
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant,
         )
@@ -1031,33 +1031,94 @@ private fun AnalysisPageTab(
                     onClick = if (!dndAccess) onRequestDndAccess else null,
                 )
                 SettingRow(
-                    title = "App restriction",
+                    title = "App restriction (Accessibility)",
                     subtitle = when {
-                        accessibilityAccess -> "Restricts unselected apps while keeping essential settings open."
-                        else -> "Accessibility permission needed to restrict apps. Tap to allow."
+                        accessibilityAccess -> "Active: detects unselected apps during focus. Settings & uninstall stay open."
+                        else -> "AccessibilityService API permission needed to restrict apps. Tap to review disclosure."
                     },
                     subtitleIsWarning = !accessibilityAccess,
                     checked = accessibilityAccess,
-                    onCheckedChange = { if (!accessibilityAccess) onRequestAccessibilityAccess() },
-                    onClick = if (!accessibilityAccess) onRequestAccessibilityAccess else null,
-                )
-                SettingRow(
-                    title = "Lockdown mode (Display over apps)",
-                    subtitle = when {
-                        overlayAccess -> "Keeps FocusBro locked as your home screen during active sessions."
-                        else -> "Permission needed to prevent exiting to launcher. Tap to allow."
-                    },
-                    subtitleIsWarning = !overlayAccess,
-                    checked = overlayAccess,
-                    onCheckedChange = { onRequestOverlayAccess() },
-                    onClick = onRequestOverlayAccess,
+                    onCheckedChange = { onRequestAccessibilityAccess() },
+                    onClick = onRequestAccessibilityAccess,
                 )
                 SettingRow(
                     title = "Require unlock to end",
-                    subtitle = "Phone lock required for Life exit.",
+                    subtitle = "Device PIN, pattern, or biometric check required before ending early.",
                     checked = settings.requireUnlockToEnd,
                     onCheckedChange = onRequireUnlock,
                 )
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        // Privacy & Security section
+        Text(
+            text = "PRIVACY & SECURITY",
+            style = MaterialTheme.typography.labelSmall,
+            letterSpacing = 1.4.sp,
+            color = colors.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(10.dp))
+        Card(
+            colors = CardDefaults.cardColors(containerColor = colors.surface),
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column {
+                Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
+                    Text(text = "100% Offline Architecture", style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "No INTERNET permission, no trackers, and no cloud backups. All focus data stays private on your device.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onOpenAccessibilityDisclosure)
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                ) {
+                    Text(text = "AccessibilityService API Disclosure", style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "Review how foreground app detection works and what data is never collected.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.primary,
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onOpenPrivacyPolicy)
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                ) {
+                    Text(text = "Privacy Policy", style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "View full policy online (sites.google.com/view/focusbro-privacy-policy)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.primary,
+                    )
+                }
+                if (!notificationsEnabled) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onOpenNotificationSettings)
+                            .padding(horizontal = 18.dp, vertical = 14.dp),
+                    ) {
+                        Text(text = "Notifications Disabled", style = MaterialTheme.typography.titleSmall)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "Tap to allow break countdown notifications in system settings.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.secondary,
+                        )
+                    }
+                }
             }
         }
     }
@@ -1332,7 +1393,7 @@ private fun StatsCard(history: List<BreakRecord>) {
                         if (mins > 0) {
                             Text(
                                 text = "${mins}m",
-                                style = TextStyle(fontSize = 9.sp),
+                                style = TextStyle(fontSize = 11.sp),
                                 color = if (isToday) colors.primary else colors.onSurfaceVariant,
                             )
                             Spacer(Modifier.height(2.dp))
@@ -1349,7 +1410,7 @@ private fun StatsCard(history: List<BreakRecord>) {
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = dayLabels[i],
-                            style = TextStyle(fontSize = 9.sp),
+                            style = TextStyle(fontSize = 11.sp),
                             color = if (isToday) colors.onBackground else colors.onSurfaceVariant,
                         )
                     }

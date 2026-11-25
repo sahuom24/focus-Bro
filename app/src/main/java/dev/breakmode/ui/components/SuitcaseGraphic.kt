@@ -38,18 +38,19 @@ fun SuitcasesRow(
     activeColor: Color = Color(0xFF8FE3C8),
     inactiveColor: Color = Color(0xFF2C2C32),
 ) {
+    val colors = MaterialTheme.colorScheme
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFF141417))
+            .background(colors.surface)
             .padding(vertical = 20.dp, horizontal = 12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         buckets.forEachIndexed { index, bucket ->
             val isSelected = bucket.id == selectedBucketId
-            val bagColor = if (isSelected) activeColor else inactiveColor
+            val bagColor = if (isSelected) activeColor else colors.outline
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -64,6 +65,8 @@ fun SuitcasesRow(
                     appCount = bucket.appPackages.size,
                     maxApps = AppBucket.MAX_APPS_PER_BUCKET,
                     isSelected = isSelected,
+                    latchColor = colors.surface,
+                    emptySlotColor = colors.surfaceVariant,
                 )
 
                 Spacer(Modifier.height(8.dp))
@@ -73,7 +76,7 @@ fun SuitcasesRow(
                     text = bucket.name,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isSelected) activeColor else Color(0xFF888890),
+                    color = if (isSelected) activeColor else colors.onSurfaceVariant,
                     fontSize = 12.sp,
                 )
             }
@@ -88,6 +91,8 @@ fun SuitcaseIcon(
     maxApps: Int,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
+    latchColor: Color = Color(0xFF141417),
+    emptySlotColor: Color = Color(0xFF38383E),
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -137,7 +142,7 @@ fun SuitcaseIcon(
                         .padding(top = 4.dp)
                         .width(10.dp)
                         .height(3.dp)
-                        .background(Color(0xFF141417)),
+                        .background(latchColor),
                 )
             }
             // Right wing
@@ -166,7 +171,7 @@ fun SuitcaseIcon(
                             when {
                                 isFilled -> color
                                 isSelected -> color.copy(alpha = 0.3f)
-                                else -> Color(0xFF38383E)
+                                else -> emptySlotColor
                             },
                         ),
                 )

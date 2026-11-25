@@ -143,7 +143,7 @@ fun PickerScreen(
                     Text(
                         text = "Search apps...",
                         style = TextStyle(fontSize = 13.sp),
-                        color = colors.onSurfaceVariant.copy(alpha = 0.6f),
+                        color = colors.onSurfaceVariant.copy(alpha = 0.75f),
                     )
                 },
                 leadingIcon = {
@@ -269,7 +269,7 @@ private fun AppGridTile(
         Text(
             text = app.label,
             style = TextStyle(
-                fontSize = 10.sp,
+                fontSize = 11.sp,
                 color = if (selected) colors.onBackground else colors.onSurfaceVariant,
                 fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
                 textAlign = TextAlign.Center,

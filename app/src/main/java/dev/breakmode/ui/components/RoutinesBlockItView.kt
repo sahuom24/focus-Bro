@@ -148,7 +148,7 @@ fun RoutinesBlockItView(
     ) {
         // 1. TOP CLOCK CARD (BlockIt Segment Digital Clock + Timeline Dotted Bar)
         Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF141417)),
+            colors = CardDefaults.cardColors(containerColor = colors.surface),
             shape = RoundedCornerShape(24.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -172,7 +172,7 @@ fun RoutinesBlockItView(
                             letterSpacing = 2.sp,
                             fontFeatureSettings = "tnum",
                         ),
-                        color = if (currentSchedule.enabled) colors.primary else Color(0xFF888890),
+                        color = if (currentSchedule.enabled) colors.primary else colors.onSurfaceVariant,
                     )
                     Text(
                         text = " : ",
@@ -181,7 +181,7 @@ fun RoutinesBlockItView(
                             fontWeight = FontWeight.Light,
                             fontFeatureSettings = "tnum",
                         ),
-                        color = Color(0xFF404048),
+                        color = colors.outline,
                     )
                     Text(
                         text = endStr,
@@ -191,7 +191,7 @@ fun RoutinesBlockItView(
                             letterSpacing = 2.sp,
                             fontFeatureSettings = "tnum",
                         ),
-                        color = if (currentSchedule.enabled) colors.primary else Color(0xFF888890),
+                        color = if (currentSchedule.enabled) colors.primary else colors.onSurfaceVariant,
                     )
                 }
 
@@ -218,8 +218,8 @@ fun RoutinesBlockItView(
                                 .background(
                                     when {
                                         isActive && currentSchedule.enabled -> colors.primary
-                                        isActive -> Color(0xFF606068)
-                                        else -> Color(0xFF222226)
+                                        isActive -> colors.onSurfaceVariant
+                                        else -> colors.surfaceVariant
                                     },
                                 ),
                         )
@@ -241,7 +241,7 @@ fun RoutinesBlockItView(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(if (isSelected) Color(0xFF16161A) else Color.Transparent)
+                        .background(if (isSelected) colors.surface else Color.Transparent)
                         .clickable { selectedIndex = index }
                         .padding(vertical = 10.dp, horizontal = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -253,7 +253,7 @@ fun RoutinesBlockItView(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             letterSpacing = 1.sp,
                         ),
-                        color = if (isSelected) colors.primary else Color(0xFF888890),
+                        color = if (isSelected) colors.primary else colors.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -265,7 +265,7 @@ fun RoutinesBlockItView(
                             fontWeight = FontWeight.SemiBold,
                             fontFeatureSettings = "tnum",
                         ),
-                        color = if (isSelected) Color(0xFFE0E0E0) else Color(0xFF66666E),
+                        color = if (isSelected) colors.onSurface else colors.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(6.dp))
                     // Active Underline Bar (BlockIt style)
@@ -282,7 +282,7 @@ fun RoutinesBlockItView(
             // Lock / Enable Toggle Square on the right
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = if (currentSchedule.enabled) colors.primary else Color(0xFF1C1C22),
+                color = if (currentSchedule.enabled) colors.primary else colors.surfaceVariant,
                 modifier = Modifier
                     .size(52.dp)
                     .clip(RoundedCornerShape(16.dp))
@@ -292,7 +292,7 @@ fun RoutinesBlockItView(
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = "Toggle Routine",
-                        tint = if (currentSchedule.enabled) colors.onPrimary else Color(0xFF6E6E78),
+                        tint = if (currentSchedule.enabled) colors.onPrimary else colors.onSurfaceVariant,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -325,7 +325,7 @@ fun RoutinesBlockItView(
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 1.sp,
             ),
-            color = if (currentSchedule.enabled) colors.primary else Color(0xFF777780),
+            color = if (currentSchedule.enabled) colors.primary else colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -365,7 +365,7 @@ fun RoutinesBlockItView(
             // Rename Chip
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = Color(0xFF16161A),
+                color = colors.surfaceVariant,
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
                     .clickable {
@@ -387,7 +387,7 @@ fun RoutinesBlockItView(
                     Text(
                         text = "Rename: ${currentSchedule.name}",
                         style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                        color = Color(0xFFE0E0E0),
+                        color = colors.onSurface,
                     )
                 }
             }
@@ -455,9 +455,11 @@ private fun RulerTimeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = MaterialTheme.colorScheme
+    val tickInactive = colors.outline.copy(alpha = 0.45f)
     Card(
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF141417)),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
         shape = RoundedCornerShape(20.dp),
         modifier = modifier.height(108.dp),
     ) {
@@ -470,7 +472,7 @@ private fun RulerTimeCard(
                     val x = i * step
                     val isCenter = i == totalLines / 2 + 1
                     val lineHeight = if (isCenter) size.height * 0.45f else (if (i % 3 == 0) size.height * 0.25f else size.height * 0.14f)
-                    val lineColor = if (isCenter && isActive) accentColor else Color(0xFF26262C)
+                    val lineColor = if (isCenter && isActive) accentColor else tickInactive
                     val stroke = if (isCenter) 2.dp.toPx() else 1.dp.toPx()
                     drawLine(
                         color = lineColor,
@@ -498,16 +500,16 @@ private fun RulerTimeCard(
                         letterSpacing = 1.sp,
                         fontFeatureSettings = "tnum",
                     ),
-                    color = if (isActive) accentColor else Color(0xFFD0D0D0),
+                    color = if (isActive) accentColor else colors.onSurface,
                 )
                 Text(
                     text = title,
                     style = TextStyle(
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp,
                     ),
-                    color = Color(0xFF888892),
+                    color = colors.onSurfaceVariant,
                 )
             }
         }

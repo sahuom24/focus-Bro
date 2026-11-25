@@ -176,12 +176,16 @@ class BreakRepositoryTest {
         assertTrue(!repository.isEmergencyExitAvailable())
         assertTrue(!repository.emergencyExitAvailable.value)
 
-        // Start another break on the same day: emergency exit should be rejected!
+        // Start another break on the same day: emergency exit should be rejected,
+        // while explicit forceEndEarly still allows ending so the user is never trapped.
         repository.start()
         assertNotNull(repository.active.value)
         val usedSecondTime = repository.useEmergencyExit()
         assertTrue("Second emergency exit on the same day must be rejected", !usedSecondTime)
         assertNotNull("Break must continue running when emergency exit is exhausted", repository.active.value)
+
+        repository.forceEndEarly()
+        assertNull("Explicit early end must finish the break so the user is never trapped", repository.active.value)
 
         // Midnight arrives: new calendar day!
         testDate = "2026-10-30"
@@ -190,7 +194,8 @@ class BreakRepositoryTest {
         assertTrue("Emergency exit must reset at midnight", repository.isEmergencyExitAvailable())
         assertTrue("StateFlow must reflect reset after midnight", repository.emergencyExitAvailable.value)
 
-        // Now emergency exit should succeed again
+        // Now emergency exit should succeed again on a newly started break
+        repository.start()
         val usedAfterMidnight = repository.useEmergencyExit()
         assertTrue("Emergency exit must succeed on the new day", usedAfterMidnight)
         assertNull("Break should now be finished", repository.active.value)

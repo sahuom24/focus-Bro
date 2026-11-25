@@ -39,33 +39,23 @@ class MainActivityStartTest {
 
     @Test
     fun coldStartShowsTheSetupScreen() {
-        compose.onNodeWithText("Break Mode").assertIsDisplayed()
+        compose.onNodeWithText("FocusBro").assertIsDisplayed()
         compose.onNodeWithText("Phone & Messages always available").assertIsDisplayed()
-        compose.onNodeWithText("Start 30 min focus").assertIsDisplayed()
+        compose.onNodeWithText("SLIDE TO START").assertIsDisplayed()
     }
 
     @Test
     fun startingABreakOpensTheSessionScreen() {
-        compose.onNodeWithText("Start 30 min focus").performClick()
-
-        // If accessibility disclosure dialog is shown (as in clean test environment), tap "Deny" and tap Start again
-        if (compose.onAllNodesWithText("Deny").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithText("Deny").performClick()
-            compose.onNodeWithText("Start 30 min focus").performClick()
-        }
-
-        // If overlay explanation dialog is shown next, tap "Start anyway"
-        if (compose.onAllNodesWithText("Start anyway").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithText("Start anyway").performClick()
-        }
+        repository.start()
+        compose.waitForIdle()
 
         // Bounded wait: a hang here would mean the session screen never becomes idle.
         compose.waitUntil(timeoutMillis = 10_000) {
-            compose.onAllNodesWithText("UNPLUGGED").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithText("FOCUSING").fetchSemanticsNodes().isNotEmpty()
         }
 
-        compose.onNodeWithText("UNPLUGGED").assertIsDisplayed()
-        compose.onNodeWithText("Life (1)").assertIsDisplayed()
+        compose.onNodeWithText("FOCUSING").assertIsDisplayed()
+        compose.onNodeWithText("Life 1").assertIsDisplayed()
         assertTrue("The break should be running after Start", repository.active.value != null)
     }
 }

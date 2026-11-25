@@ -20,6 +20,7 @@ class BreakRepository private constructor(context: Context) {
     private val appContext: Context = context.applicationContext
     private val prefs: SharedPreferences =
         appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val stateLock = Any()
 
     private val _settings = MutableStateFlow(readSettings())
     val settings: StateFlow<BreakSettings> = _settings.asStateFlow()
@@ -47,7 +48,7 @@ class BreakRepository private constructor(context: Context) {
 
     // ---------------------------------------------------------------- settings
 
-    fun updateSettings(transform: (BreakSettings) -> BreakSettings) {
+    fun updateSettings(transform: (BreakSettings) -> BreakSettings) = synchronized(stateLock) {
         val updated = transform(_settings.value)
         _settings.value = updated
         prefs.edit()
@@ -81,10 +82,11 @@ class BreakRepository private constructor(context: Context) {
     }
 
     fun updateBucket(bucketId: String, name: String, packages: Set<String>) {
+        val sanitized = name.trim().take(MAX_NAME_LENGTH).ifEmpty { "Bag" }
         updateSettings { current ->
             val updatedBuckets = current.buckets.map { b ->
                 if (b.id == bucketId) {
-                    b.copy(name = name, appPackages = packages.take(AppBucket.MAX_APPS_PER_BUCKET).toSet())
+                    b.copy(name = sanitized, appPackages = packages.take(AppBucket.MAX_APPS_PER_BUCKET).toSet())
                 } else {
                     b
                 }
@@ -167,7 +169,7 @@ class BreakRepository private constructor(context: Context) {
      *
      * Called only from an explicit user action (the Start button).
      */
-    fun start(): ActiveBreak {
+    fun start(): ActiveBreak = synchronized(stateLock) {
         _active.value?.let { return it }
 
         val settings = _settings.value
@@ -205,7 +207,7 @@ class BreakRepository private constructor(context: Context) {
     /**
      * Starts a break triggered automatically from a schedule.
      */
-    fun startScheduled(schedule: FocusSchedule): ActiveBreak {
+    fun startScheduled(schedule: FocusSchedule): ActiveBreak = synchronized(stateLock) {
         _active.value?.let { return it }
 
         val settings = _settings.value
@@ -251,7 +253,7 @@ class BreakRepository private constructor(context: Context) {
      *
      * @return true if the emergency exit was successfully used, false if already exhausted today.
      */
-    fun useEmergencyExit(): Boolean {
+    fun useEmergencyExit(): Boolean = synchronized(stateLock) {
         if (!isEmergencyExitAvailable()) return false
         val today = currentDateProvider()
         prefs.edit().putString(KEY_LAST_EMERGENCY_EXIT_DATE, today).apply()
@@ -261,11 +263,19 @@ class BreakRepository private constructor(context: Context) {
     }
 
     /**
+     * Ends a running break early after explicit user confirmation when the daily free
+     * emergency exit has already been used, ensuring the user is never locked out of their device.
+     */
+    fun forceEndEarly() = synchronized(stateLock) {
+        finish(completed = false)
+    }
+
+    /**
      * Ends the running break, recording it in the history.
      *
      * @param completed true when the timer ran out, false when the user ended it early.
      */
-    fun finish(completed: Boolean) {
+    fun finish(completed: Boolean) = synchronized(stateLock) {
         val active = _active.value ?: return
 
         val elapsedMinutes = (((System.currentTimeMillis() - active.startedAtMillis) / 60_000L) + 1)
@@ -294,7 +304,7 @@ class BreakRepository private constructor(context: Context) {
     }
 
     /** Adds minutes to the running break, capped at two extra hours. */
-    fun extend(minutes: Int) {
+    fun extend(minutes: Int) = synchronized(stateLock) {
         if (minutes <= 0) return
         val active = _active.value ?: return
         val extended = active.copy(
@@ -310,7 +320,7 @@ class BreakRepository private constructor(context: Context) {
      * Closes out a break whose time has passed while the app was in the background or killed.
      * Safe to call on every resume: it never starts or extends anything.
      */
-    fun syncWithClock() {
+    fun syncWithClock() = synchronized(stateLock) {
         refreshEmergencyExitStatus()
         val active = _active.value
         if (active != null) {
@@ -320,7 +330,7 @@ class BreakRepository private constructor(context: Context) {
         }
     }
 
-    fun clearHistory() {
+    fun clearHistory() = synchronized(stateLock) {
         _history.value = emptyList()
         prefs.edit().remove(KEY_HISTORY).apply()
     }
@@ -457,7 +467,7 @@ class BreakRepository private constructor(context: Context) {
     private fun readActive(): ActiveBreak? {
         val startedAt = prefs.getLong(KEY_STARTED_AT, 0L)
         val endsAt = prefs.getLong(KEY_ENDS_AT, 0L)
-        if (startedAt == 0L || endsAt == 0L) return null
+        if (startedAt <= 0L || endsAt <= startedAt) return null
         return ActiveBreak(
             startedAtMillis = startedAt,
             endsAtMillis = endsAt,
@@ -502,6 +512,7 @@ class BreakRepository private constructor(context: Context) {
     companion object {
         private const val PREFS_NAME = "break_mode_prefs"
         private const val MAX_HISTORY = 60
+        private const val MAX_NAME_LENGTH = 32
 
         private const val KEY_MINUTES = "minutes"
         private const val KEY_ALLOWED = "allowed_packages"

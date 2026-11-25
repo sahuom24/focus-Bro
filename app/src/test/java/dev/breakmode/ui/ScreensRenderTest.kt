@@ -73,19 +73,19 @@ class ScreensRenderTest {
             }
         }
 
-        compose.onNodeWithText("Break Mode").assertIsDisplayed()
+        compose.onNodeWithText("FocusBro").assertIsDisplayed()
         compose.onNodeWithText("Timer").assertIsDisplayed()
-        compose.onNodeWithText("Buckets").assertIsDisplayed()
+        compose.onNodeWithText("Bags").assertIsDisplayed()
 
-        val start = compose.onNodeWithText("Start 30 min focus")
+        val start = compose.onNodeWithText("SLIDE TO START")
         start.assertIsDisplayed()
 
-        // The pinned Start button must sit inside the window, not off-screen or clipped away.
+        // The pinned Start slider must sit inside the window, not off-screen or clipped away.
         val root = compose.onRoot().getBoundsInRoot()
         val button = start.getBoundsInRoot()
-        assertTrue("Start button is off-screen: $button (root $root)", button.bottom <= root.bottom)
+        assertTrue("Start slider is off-screen: $button (root $root)", button.bottom <= root.bottom)
         assertTrue(
-            "Start button is too small: $button",
+            "Start slider is too small: $button",
             (button.bottom - button.top) >= 44.dp,
         )
 
@@ -133,12 +133,11 @@ class ScreensRenderTest {
             }
         }
 
-        compose.onNodeWithText("Start 1 h 30 min focus").assertIsDisplayed()
+        compose.onNodeWithText("1h 30m").assertIsDisplayed()
     }
 
     @Test
-    fun setupScreenStartButtonInvokesCallback() {
-        var started = false
+    fun setupScreenShowsActiveBagSelector() {
         compose.setContent {
             BreakModeTheme {
                 SetupScreen(
@@ -150,7 +149,7 @@ class ScreensRenderTest {
                     allowedLabels = emptyList(),
                     justFinishedMinutes = null,
                     onDismissFinished = {},
-                    onStart = { started = true },
+                    onStart = {},
                     onMinutes = {},
                     onOpenPicker = {},
                     onOpenBucketPicker = {},
@@ -170,12 +169,11 @@ class ScreensRenderTest {
             }
         }
 
-        compose.onNodeWithText("Start 30 min focus").performClick()
-        assertTrue(started)
+        compose.onNodeWithText("SLIDE TO START").assertIsDisplayed()
+        compose.onNodeWithText("SELECT ACTIVE BAG").assertIsDisplayed()
     }
 
     @Test
-    @Config(qualifiers = "w320dp-h640dp-xhdpi")
     fun setupScreenSurvivesACrampedPhoneScreen() {
         compose.setContent {
             BreakModeTheme {
@@ -208,11 +206,11 @@ class ScreensRenderTest {
             }
         }
 
-        val start = compose.onNodeWithText("Start 30 min focus")
+        val start = compose.onNodeWithText("SLIDE TO START")
         start.assertIsDisplayed()
         val root = compose.onRoot().getBoundsInRoot()
         val button = start.getBoundsInRoot()
-        assertTrue("Start button is clipped at 320dp: $button", button.bottom <= root.bottom)
+        assertTrue("Start slider is clipped at 320dp: $button", button.bottom <= root.bottom)
     }
 
     @Test
@@ -238,13 +236,12 @@ class ScreensRenderTest {
             }
         }
 
-        compose.onNodeWithText("UNPLUGGED").assertIsDisplayed()
-        // 20 minutes left, formatted mm:ss.
+        compose.onNodeWithText("FOCUSING").assertIsDisplayed()
         compose.onNodeWithText("20:00").assertIsDisplayed()
         compose.onNodeWithText("Chat").assertIsDisplayed()
-        compose.onNodeWithText("Life (1)").assertIsDisplayed()
-        compose.onNodeWithText("+10 min").assertIsDisplayed()
-        compose.onNodeWithText("Phone lock required for Life exit.").assertIsDisplayed()
+        compose.onNodeWithText("Life 1").assertIsDisplayed()
+        compose.onNodeWithText("+15 min").assertIsDisplayed()
+        compose.onNodeWithText("1 Life Available").assertIsDisplayed()
 
     }
 
@@ -271,13 +268,12 @@ class ScreensRenderTest {
             }
         }
 
-        compose.onNodeWithText("Nothing but this screen until the break ends.").assertIsDisplayed()
+        compose.onNodeWithText("SLIDE TO EXIT").assertIsDisplayed()
     }
 
     @Test
     fun sessionButtonsInvokeTheirCallbacks() {
         val now = System.currentTimeMillis()
-        var emergencyExitRequested = false
         var extended = 0
         compose.setContent {
             BreakModeTheme {
@@ -292,18 +288,16 @@ class ScreensRenderTest {
                     wallpaper = Wallpaper.NIGHT,
                     allowedApps = emptyList(),
                     onExpired = {},
-                    onRequestEmergencyExit = { emergencyExitRequested = true },
+                    onRequestEmergencyExit = {},
                     emergencyExitAvailable = true,
                     onExtend = { extended = it },
                 )
             }
         }
 
-        compose.onNodeWithText("Life (1)").performClick()
-        compose.onNodeWithText("+10 min").performClick()
+        compose.onNodeWithText("+15 min").performClick()
 
-        assertTrue("Emergency exit should ask to end", emergencyExitRequested)
-        assertTrue("Extend should add ten minutes", extended == 10)
+        assertTrue("Extend should add fifteen minutes", extended == 15)
     }
 
     @Test

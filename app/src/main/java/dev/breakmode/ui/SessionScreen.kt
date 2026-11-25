@@ -355,8 +355,8 @@ fun SessionScreen(
                 // Status text
                 Text(
                     text = if (emergencyExitAvailable) "1 Life Available" else "Life resets at midnight",
-                    style = TextStyle(fontSize = 10.sp),
-                    color = Paper.copy(alpha = 0.4f),
+                    style = TextStyle(fontSize = 11.sp),
+                    color = Paper.copy(alpha = 0.65f),
                 )
 
                 // Messages

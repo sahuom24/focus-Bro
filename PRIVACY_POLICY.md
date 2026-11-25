@@ -1,9 +1,9 @@
 # Privacy Policy for FocusBro (Break Mode)
 
-**Last Updated:** November 24, 2026  
+**Last Updated:** November 25, 2026  
 **Effective Date:** November 24, 2026  
 
-FocusBro ("Break Mode", "we", "our", or "the app"), developed under package `dev.breakmode`, is committed to protecting your privacy. This Privacy Policy outlines our practices regarding data collection, usage, and device permissions.
+FocusBro ("Break Mode", "we", "our", or "the app"), published under package `com.focusbro.myapp`, is committed to protecting your privacy. This Privacy Policy outlines our practices regarding data collection, usage, and device permissions.
 
 ---
 
@@ -20,29 +20,26 @@ FocusBro ("Break Mode", "we", "our", or "the app"), developed under package `dev
 FocusBro operates strictly locally on your device. To provide core focus, scheduling, and distraction-blocking functionality, the app requests the following Android permissions:
 
 #### A. Accessibility Service (`android.permission.BIND_ACCESSIBILITY_SERVICE`)
-- **Purpose:** FocusBro uses an Accessibility Service (`FocusAccessibilityService`) solely to detect the package name of the currently active foreground app during an active focus session. When an unselected (blocked) app is opened, FocusBro displays a gentle focus reminder overlay to help you stay on track.
+- **Purpose:** FocusBro uses an optional Accessibility Service (`FocusAccessibilityService`) solely to detect the package name of the currently active foreground app window during an active focus session. When an unselected (distracting) app is opened, FocusBro brings your FocusBro session screen back to the foreground to help you stay on track.
+- **User Control & Non-Interference:** System Settings and package installer/uninstall screens are **never** blocked, and you can grant, decline, or revoke Accessibility access at any time in Android System Settings.
 - **Privacy Assurance:** The Accessibility Service:
-  - **Does NOT** inspect, read, or record screen content, text, passwords, or personal messages.
+  - **Does NOT** inspect, read, or record screen content, text, passwords, or personal messages (`canRetrieveWindowContent="false"`).
   - **Does NOT** log or track your keystrokes or inputs.
-  - **Does NOT** collect or store personal data.
-  - **Does NOT** send any information over any network (as the app has zero network capability).
-  - Can be enabled or disabled by you at any time in Android System Settings.
+  - **Does NOT** collect, store, or share personal or sensitive user data.
+  - **Does NOT** transmit any information over any network (the app has zero `INTERNET` permission).
 
-#### B. Accessibility & System Overlay (`android.permission.SYSTEM_ALERT_WINDOW`)
-- **Purpose:** Used to display the focus reminder screen or break overlay over blocked apps during an active focus session.
+#### B. Notification Management (`android.permission.ACCESS_NOTIFICATION_POLICY` & `android.permission.POST_NOTIFICATIONS`)
+- **Post Notifications:** Used to display ongoing break countdowns and completion notifications.
+- **Access Notification Policy (Do Not Disturb):** An optional permission that allows FocusBro to automatically silence interruptions (turn on Do Not Disturb) during your focus session and restore your previous notification settings when the session ends. FocusBro does not read or intercept your notifications.
 
-#### C. Notification Management (`android.permission.ACCESS_NOTIFICATION_POLICY` & `android.permission.POST_NOTIFICATIONS`)
-- **Post Notifications:** Used to display ongoing break countdowns, quick action controls (e.g., extend break, finish break), and completion notifications.
-- **Access Notification Policy (Do Not Disturb):** An optional permission that allows FocusBro to automatically silence notifications (turn on Do Not Disturb) during your focus session and restore your previous notification settings when the break ends. FocusBro does not read or intercept your notifications.
+#### C. Alarms & Scheduling (`android.permission.SCHEDULE_EXACT_ALARM`)
+- **Purpose:** Used exclusively to trigger your custom focus routines at the scheduled start time, even when the device is in Doze mode.
 
-#### D. Exact Alarms & Scheduling (`android.permission.SCHEDULE_EXACT_ALARM`, `android.permission.USE_EXACT_ALARM`)
-- **Purpose:** Used exclusively to trigger your custom focus schedules at the exact time you configured, even when the device is in low-power Doze mode.
-
-#### E. Startup on Boot (`android.permission.RECEIVE_BOOT_COMPLETED`)
+#### D. Startup on Boot (`android.permission.RECEIVE_BOOT_COMPLETED`)
 - **Purpose:** Used to reschedule your active focus timers or recurring focus schedules when your device restarts.
 
-#### F. Installed Application Queries (`<queries>`)
-- **Purpose:** FocusBro queries launcher apps locally on your device to display a selection list, allowing you to choose which apps remain accessible during a focus session (such as Phone, Messages, or essential tools). This list is processed entirely in device memory and is never exported.
+#### E. Installed Application Queries (`<queries>`)
+- **Purpose:** FocusBro queries launcher apps locally on your device to display a selection list, allowing you to choose which apps remain accessible during a focus session (such as Phone, Messages, Calendar, or UPI). This list is processed entirely in device memory and is never exported.
 
 ---
 

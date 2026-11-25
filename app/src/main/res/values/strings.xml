@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Break Mode</string>
-    <string name="accessibility_service_description">FocusBro uses this service solely to detect when an unselected app is opened during an active focus session, displaying a reminder screen to help you stay focused. It does not collect, read, or transmit any personal data, passwords, keystrokes, or screen content.</string>
+    <string name="app_name">FocusBro</string>
+    <string name="accessibility_service_description">FocusBro uses this service solely to detect when an unselected app is opened during an active focus session, displaying a reminder screen to help you stay focused. Settings and uninstall screens are never blocked, and no personal data, passwords, keystrokes, or screen content is collected or transmitted.</string>
 </resources>
