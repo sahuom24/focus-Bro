@@ -1,6 +1,6 @@
 # Privacy Policy for FocusBro (Break Mode)
 
-**Last Updated:** November 25, 2026  
+**Last Updated:** November 26, 2026  
 **Effective Date:** November 24, 2026  
 
 FocusBro ("Break Mode", "we", "our", or "the app"), published under package `com.focusbro.myapp`, is committed to protecting your privacy. This Privacy Policy outlines our practices regarding data collection, usage, and device permissions.
@@ -20,7 +20,7 @@ FocusBro ("Break Mode", "we", "our", or "the app"), published under package `com
 FocusBro operates strictly locally on your device. To provide core focus, scheduling, and distraction-blocking functionality, the app requests the following Android permissions:
 
 #### A. Accessibility Service (`android.permission.BIND_ACCESSIBILITY_SERVICE`)
-- **Purpose:** FocusBro uses an optional Accessibility Service (`FocusAccessibilityService`) solely to detect the package name of the currently active foreground app window during an active focus session. When an unselected (distracting) app is opened, FocusBro brings your FocusBro session screen back to the foreground to help you stay on track.
+- **Purpose:** FocusBro uses an optional Accessibility Service (`FocusAccessibilityService`) to check the foreground app package and window class (to recognize system security prompts) during an active focus session. When an unselected (distracting) app is opened, FocusBro brings your FocusBro session screen back to the foreground to help you stay on track.
 - **User Control & Non-Interference:** System Settings and package installer/uninstall screens are **never** blocked, and you can grant, decline, or revoke Accessibility access at any time in Android System Settings.
 - **Privacy Assurance:** The Accessibility Service:
   - **Does NOT** inspect, read, or record screen content, text, passwords, or personal messages (`canRetrieveWindowContent="false"`).

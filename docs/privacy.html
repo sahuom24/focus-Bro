@@ -106,7 +106,7 @@
     <h3>Accessibility Service (<code>BIND_ACCESSIBILITY_SERVICE</code>)</h3>
     <p>FocusBro includes an optional Accessibility Service (<code>FocusAccessibilityService</code>) used solely to:</p>
     <ul>
-      <li>Detect the foreground package name during an active focus session. When you open an app that was not selected for your break, FocusBro brings your FocusBro session screen back to the foreground to keep you focused.</li>
+      <li>Check the foreground app package and window class during a focus session. The window class identifies system security prompts that must remain available. When you open an app that was not selected for your break, FocusBro brings your FocusBro session screen back to the foreground to keep you focused.</li>
       <li><strong>User Control:</strong> Android System Settings and package installer/uninstall screens are never blocked, and you can grant, decline, or revoke this permission in Android Settings at any time.</li>
       <li><strong>Privacy Guarantee:</strong> The Accessibility Service <em>does not</em> read, store, or log any screen text, typing, passwords, or personal messages (<code>canRetrieveWindowContent="false"</code>). It operates entirely on-device and never shares data.</li>
     </ul>
