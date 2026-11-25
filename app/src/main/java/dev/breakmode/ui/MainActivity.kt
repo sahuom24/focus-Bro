@@ -16,7 +16,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,7 +30,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.breakmode.session.BreakNotifier
@@ -75,6 +84,7 @@ fun BreakModeApp(viewModel: BreakViewModel) {
     var showEmergencyExitExhaustedNotice by remember { mutableStateOf(false) }
     var showDndExplain by remember { mutableStateOf(false) }
     var showAccessibilityExplain by remember { mutableStateOf(false) }
+    var accessibilityDeclined by remember { mutableStateOf(false) }
     var showOverlayExplain by remember { mutableStateOf(false) }
 
     val notificationPermission = rememberLauncherForActivityResult(
@@ -194,7 +204,7 @@ fun BreakModeApp(viewModel: BreakViewModel) {
                 ) {
                     notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
-                if (!accessibilityAccess) {
+                if (!accessibilityAccess && !accessibilityDeclined) {
                     showAccessibilityExplain = true
                 } else if (!overlayAccess) {
                     showOverlayExplain = true
@@ -227,7 +237,10 @@ fun BreakModeApp(viewModel: BreakViewModel) {
             onRequireUnlock = viewModel::setRequireUnlock,
             onWallpaper = viewModel::setWallpaper,
             onRequestDndAccess = { showDndExplain = true },
-            onRequestAccessibilityAccess = { showAccessibilityExplain = true },
+            onRequestAccessibilityAccess = {
+                accessibilityDeclined = false
+                showAccessibilityExplain = true
+            },
             onRequestOverlayAccess = { showOverlayExplain = true },
             onOpenNotificationSettings = {
                 val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
@@ -265,12 +278,54 @@ fun BreakModeApp(viewModel: BreakViewModel) {
     if (showAccessibilityExplain) {
         AlertDialog(
             onDismissRequest = { showAccessibilityExplain = false },
-            title = { Text("Enable App Restriction") },
-            text = {
+            title = {
                 Text(
-                    "To restrict all unselected apps during focus mode while keeping notifications " +
-                        "and essential settings accessible, Break Mode requires Accessibility permission in system settings.",
+                    text = "AccessibilityService API Disclosure",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                 )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "FocusBro uses the AccessibilityService API to detect and prevent digital distractions during active focus sessions.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text = "How the Accessibility API is used:",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "• Detects when an unselected (blocked) app is opened in the foreground during an active focus session.\n" +
+                            "• Displays a gentle focus reminder screen to keep you on track.\n" +
+                            "• Ensures essential communication apps (like Phone and Messages) remain accessible according to your setup.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = "Data Access & Privacy Guarantees:",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "• Only active window package names are inspected locally during active focus sessions.\n" +
+                            "• Does NOT collect, store, or share any personal information.\n" +
+                            "• Does NOT monitor or record keystrokes, passwords, or typing.\n" +
+                            "• Does NOT inspect or read your screen text or personal messages.\n" +
+                            "• Operates 100% offline with zero internet access.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = "You can grant, deny, or revoke this permission at any time in Android System Settings.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             },
             confirmButton = {
                 TextButton(
@@ -279,15 +334,19 @@ fun BreakModeApp(viewModel: BreakViewModel) {
                         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                         accessibilitySettingsLauncher.launch(intent)
                     },
-                ) { Text("Open settings") }
+                ) {
+                    Text("Agree & Turn On")
+                }
             },
             dismissButton = {
                 TextButton(
                     onClick = {
                         showAccessibilityExplain = false
-                        viewModel.startBreak()
+                        accessibilityDeclined = true
                     },
-                ) { Text("Start anyway") }
+                ) {
+                    Text("Deny")
+                }
             },
         )
     }

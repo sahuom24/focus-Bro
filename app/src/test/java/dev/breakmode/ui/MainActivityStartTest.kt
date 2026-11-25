@@ -48,9 +48,10 @@ class MainActivityStartTest {
     fun startingABreakOpensTheSessionScreen() {
         compose.onNodeWithText("Start 30 min focus").performClick()
 
-        // If accessibility explanation dialog is shown (as in clean test environment), tap "Start anyway"
-        if (compose.onAllNodesWithText("Start anyway").fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithText("Start anyway").performClick()
+        // If accessibility explanation dialog is shown (as in clean test environment), tap "Deny" and tap Start again
+        if (compose.onAllNodesWithText("Deny").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithText("Deny").performClick()
+            compose.onNodeWithText("Start 30 min focus").performClick()
         }
 
         // Bounded wait: a hang here would mean the session screen never becomes idle.
