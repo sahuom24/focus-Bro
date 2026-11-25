@@ -82,6 +82,7 @@ fun PickerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .studioBackdrop()
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         Row(
@@ -141,7 +142,7 @@ fun PickerScreen(
                     .height(48.dp),
                 placeholder = {
                     Text(
-                        text = "Search apps...",
+                        text = "Search your apps",
                         style = TextStyle(fontSize = 13.sp),
                         color = colors.onSurfaceVariant.copy(alpha = 0.75f),
                     )
@@ -209,7 +210,7 @@ fun PickerScreen(
             }
 
             else -> LazyVerticalGrid(
-                columns = GridCells.Fixed(5),
+                columns = GridCells.Adaptive(78.dp),
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -220,6 +221,7 @@ fun PickerScreen(
                     AppGridTile(
                         app = app,
                         selected = isSelected,
+                        enabled = isSelected || maxSelection == null || selected.size < maxSelection,
                         onToggle = { onToggle(app.packageName) },
                     )
                 }
@@ -232,15 +234,16 @@ fun PickerScreen(
 private fun AppGridTile(
     app: LaunchableApp,
     selected: Boolean,
+    enabled: Boolean,
     onToggle: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onToggle)
-            .padding(vertical = 4.dp, horizontal = 2.dp),
+            .glass(16.dp, selected)
+            .clickable(enabled = enabled, onClick = onToggle)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
     ) {
         Box(
             modifier = Modifier.size(48.dp),

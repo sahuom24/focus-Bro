@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -54,6 +55,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.breakmode.session.AppBucket
 import dev.breakmode.session.FocusSchedule
+import dev.breakmode.ui.GlassArt
+import dev.breakmode.ui.glass
 import dev.breakmode.ui.formatMinutes
 
 /**
@@ -143,14 +146,15 @@ fun RoutinesBlockItView(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 18.dp, vertical = 10.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // 1. TOP CLOCK CARD (BlockIt Segment Digital Clock + Timeline Dotted Bar)
+        Text("Schedule", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Medium)
         Card(
-            colors = CardDefaults.cardColors(containerColor = colors.surface),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
             shape = RoundedCornerShape(24.dp),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().glass(24.dp, active = true),
         ) {
             Column(
                 modifier = Modifier
@@ -158,7 +162,11 @@ fun RoutinesBlockItView(
                     .padding(vertical = 22.dp, horizontal = 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Large Digital Clock: START : END
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    GlassArt(selectedIndex, Modifier.size(54.dp))
+                    Text(currentSchedule.name, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
+                }
+                Spacer(Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
@@ -167,7 +175,7 @@ fun RoutinesBlockItView(
                     Text(
                         text = startStr,
                         style = TextStyle(
-                            fontSize = 48.sp,
+                            fontSize = 36.sp,
                             fontWeight = FontWeight.Light,
                             letterSpacing = 2.sp,
                             fontFeatureSettings = "tnum",
@@ -175,9 +183,9 @@ fun RoutinesBlockItView(
                         color = if (currentSchedule.enabled) colors.primary else colors.onSurfaceVariant,
                     )
                     Text(
-                        text = " : ",
+                        text = " – ",
                         style = TextStyle(
-                            fontSize = 42.sp,
+                            fontSize = 30.sp,
                             fontWeight = FontWeight.Light,
                             fontFeatureSettings = "tnum",
                         ),
@@ -186,7 +194,7 @@ fun RoutinesBlockItView(
                     Text(
                         text = endStr,
                         style = TextStyle(
-                            fontSize = 48.sp,
+                            fontSize = 36.sp,
                             fontWeight = FontWeight.Light,
                             letterSpacing = 2.sp,
                             fontFeatureSettings = "tnum",
@@ -291,7 +299,7 @@ fun RoutinesBlockItView(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = "Toggle Routine",
+                        contentDescription = if (currentSchedule.enabled) "Turn routine off" else "Turn routine on",
                         tint = if (currentSchedule.enabled) colors.onPrimary else colors.onSurfaceVariant,
                         modifier = Modifier.size(22.dp),
                     )

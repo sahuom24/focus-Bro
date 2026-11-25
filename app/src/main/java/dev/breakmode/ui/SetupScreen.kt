@@ -84,10 +84,10 @@ import dev.breakmode.ui.components.SuitcasesRow
 import kotlin.math.roundToInt
 
 enum class AppTab(val title: String) {
-    TIMER("Timer"),
-    BUCKETS("Bags"),
-    SCHEDULE("Routines"),
-    ANALYSIS("Analysis"),
+    TIMER("Home"),
+    BUCKETS("Apps"),
+    SCHEDULE("Schedule"),
+    ANALYSIS("Settings"),
 }
 
 @Composable
@@ -139,7 +139,7 @@ fun SetupScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
+            .studioBackdrop()
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         Column(
@@ -200,15 +200,16 @@ fun SetupScreen(
 
             // Bottom Navigation Bar with 4 tabs
             NavigationBar(
-                containerColor = colors.surface,
-                tonalElevation = 8.dp,
-                modifier = Modifier.fillMaxWidth(),
+                containerColor = Color.Transparent,
+                tonalElevation = 0.dp,
+                windowInsets = WindowInsets(0, 0, 0, 0),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp).fillMaxWidth().glass(32.dp),
             ) {
                 NavigationBarItem(
                     selected = selectedTab == AppTab.TIMER,
                     onClick = { selectedTab = AppTab.TIMER },
                     icon = { Icon(AppIcons.Timer, contentDescription = "Timer") },
-                    label = { Text("Timer") },
+                    label = { Text("Home") },
                     colors = NavigationBarItemDefaults.colors(
                         indicatorColor = colors.primary.copy(alpha = 0.2f),
                         selectedIconColor = colors.primary,
@@ -219,7 +220,7 @@ fun SetupScreen(
                     selected = selectedTab == AppTab.BUCKETS,
                     onClick = { selectedTab = AppTab.BUCKETS },
                     icon = { Icon(AppIcons.Buckets, contentDescription = "Bags") },
-                    label = { Text("Bags") },
+                    label = { Text("Apps") },
                     colors = NavigationBarItemDefaults.colors(
                         indicatorColor = colors.primary.copy(alpha = 0.2f),
                         selectedIconColor = colors.primary,
@@ -230,7 +231,7 @@ fun SetupScreen(
                     selected = selectedTab == AppTab.SCHEDULE,
                     onClick = { selectedTab = AppTab.SCHEDULE },
                     icon = { Icon(AppIcons.Schedule, contentDescription = "Routines") },
-                    label = { Text("Routines") },
+                    label = { Text("Schedule") },
                     colors = NavigationBarItemDefaults.colors(
                         indicatorColor = colors.primary.copy(alpha = 0.2f),
                         selectedIconColor = colors.primary,
@@ -241,7 +242,7 @@ fun SetupScreen(
                     selected = selectedTab == AppTab.ANALYSIS,
                     onClick = { selectedTab = AppTab.ANALYSIS },
                     icon = { Icon(AppIcons.Analysis, contentDescription = "Analysis") },
-                    label = { Text("Analysis") },
+                    label = { Text("Settings") },
                     colors = NavigationBarItemDefaults.colors(
                         indicatorColor = colors.primary.copy(alpha = 0.2f),
                         selectedIconColor = colors.primary,
@@ -401,183 +402,52 @@ private fun MainTimerTab(
 ) {
     val colors = MaterialTheme.colorScheme
     val activeBucket = settings.buckets.firstOrNull { it.id == settings.selectedBucketId }
-
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 22.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        // Top App Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                Text(
-                    text = "FocusBro",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.onBackground,
-                )
-                Text(
-                    text = "Phone & Messages always available",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                )
+        Spacer(Modifier.height(8.dp))
+        Text("FOCUSBRO", color = colors.primary, letterSpacing = 3.sp,
+            style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        Text("Focus session", style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.Medium, letterSpacing = (-1.6).sp)
+        Column(Modifier.fillMaxWidth().glass(32.dp, active = true)) {
+            Box(Modifier.fillMaxWidth().height(156.dp), contentAlignment = Alignment.Center) {
+                GlassArt(settings.buckets.indexOf(activeBucket).coerceAtLeast(0), Modifier.size(156.dp))
             }
-            if (activeBucket != null) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.primary.copy(alpha = 0.15f),
-                    modifier = Modifier.padding(vertical = 4.dp),
-                ) {
-                    Text(
-                        text = activeBucket.name,
-                        style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
-                        color = colors.primary,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    )
+            Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Duration", color = colors.onSurfaceVariant, style = MaterialTheme.typography.labelLarge)
+                Text(formatMinutes(settings.minutes), color = colors.onSurface,
+                    style = MaterialTheme.typography.headlineLarge)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(15, 30, 60, 120).forEach { minutes ->
+                        FilterChip(selected = settings.minutes == minutes, onClick = { onMinutes(minutes) }, label = { Text(formatMinutes(minutes)) }, shape = RoundedCornerShape(50))
+                    }
+                    FilterChip(selected = settings.minutes !in listOf(15, 30, 60, 120), onClick = onOpenCustom, label = { Text("Custom") }, shape = RoundedCornerShape(50))
                 }
             }
         }
-
-        Spacer(Modifier.height(6.dp))
-
-        // Center: Big Digital Clock + Slider + Presets
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            val hours = settings.minutes / 60
-            val mins = settings.minutes % 60
-            val timeDisplay = if (hours > 0) {
-                String.format("%02d:%02d", hours, mins)
-            } else {
-                String.format("00:%02d", mins)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Your essentials", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+                Text("Apps you can still use while focusing", color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             }
-
-            Text(
-                text = timeDisplay,
-                style = TextStyle(
-                    fontSize = 72.sp,
-                    fontWeight = FontWeight.Light,
-                    letterSpacing = 2.sp,
-                    fontFeatureSettings = "tnum",
-                ),
-                color = colors.primary,
-            )
-            Text(
-                text = formatMinutes(settings.minutes),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = colors.onSurfaceVariant,
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            // Continuous Slider (5 min to 720 min / 12h)
-            Slider(
-                value = settings.minutes.toFloat(),
-                onValueChange = { onMinutes(((it / 5f).roundToInt() * 5).coerceIn(5, 720)) },
-                valueRange = 5f..720f,
-                steps = 142,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(10.dp))
-
-            // Preset Chips (up to 12h + Custom)
-            val presets = listOf(15, 30, 45, 60, 120, 180, 360, 720)
-            val isCustom = settings.minutes !in presets
-
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                presets.forEach { minsVal ->
-                    FilterChip(
-                        selected = settings.minutes == minsVal,
-                        onClick = { onMinutes(minsVal) },
-                        label = { Text(formatMinutes(minsVal)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = colors.primary,
-                            selectedLabelColor = colors.onPrimary,
-                        ),
-                    )
-                }
-                // Custom Chip
-                FilterChip(
-                    selected = isCustom,
-                    onClick = onOpenCustom,
-                    label = {
-                        Text(if (isCustom) "Custom (${formatMinutes(settings.minutes)})" else "Custom...")
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = colors.primary,
-                        selectedLabelColor = colors.onPrimary,
-                    ),
-                )
+            Text(activeBucket?.name ?: "Choose", color = colors.primary, fontWeight = FontWeight.SemiBold)
+        }
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            settings.buckets.forEach { bucket ->
+                FilterChip(selected = bucket.id == settings.selectedBucketId, onClick = { onSelectBucket(bucket.id) }, label = { Text(bucket.name) }, shape = RoundedCornerShape(50))
             }
         }
-
-        Spacer(Modifier.height(6.dp))
-
-        // Bag Quick Selector
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "SELECT ACTIVE BAG",
-                    style = MaterialTheme.typography.labelSmall,
-                    letterSpacing = 1.2.sp,
-                    color = colors.onSurfaceVariant,
-                )
-                Text(
-                    text = activeBucket?.name ?: "None selected",
-                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium),
-                    color = if (activeBucket != null) colors.primary else colors.error,
-                )
-            }
-            Spacer(Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                settings.buckets.forEach { bucket ->
-                    val isSelected = bucket.id == settings.selectedBucketId
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onSelectBucket(bucket.id) },
-                        label = { Text(bucket.name) },
-                        modifier = Modifier.weight(1f),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = colors.primary.copy(alpha = 0.2f),
-                            selectedLabelColor = colors.primary,
-                        ),
-                    )
-                }
-            }
+        Button(onClick = onStart, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().height(58.dp)) {
+            Text("Start focusing  →", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         }
-
-        Spacer(Modifier.height(10.dp))
-
-        // SLIDE TO START (Deliberate tactile start slider)
-        SlideToAction(
-            text = "SLIDE TO START",
-            onAction = onStart,
-            completedTrackColor = colors.primary,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Text("Phone & Messages always available", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(12.dp))
     }
 }
 
-// -------------------------------------------------------------- TAB 2: BAGS (BUCKETS)
 @Composable
 private fun BucketsPageTab(
     buckets: List<AppBucket>,
@@ -587,218 +457,35 @@ private fun BucketsPageTab(
     onStartRename: (AppBucket) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val context = LocalContext.current
-    val activeBucket = buckets.firstOrNull { it.id == selectedBucketId } ?: buckets.firstOrNull()
-
-    val getAppLabel: (String) -> String = remember(context) {
-        { pkg ->
-            runCatching {
-                val info = context.packageManager.getApplicationInfo(pkg, 0)
-                context.packageManager.getApplicationLabel(info).toString()
-            }.getOrDefault(pkg)
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(18.dp),
-    ) {
-        Text(
-            text = "Focus Bags",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = "Pack essential apps for each mode (up to 6 apps per bag). Phone and Messages are permanently available.",
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.onSurfaceVariant,
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        // Graphic Suitcases Row (BlockIt inspired)
-        SuitcasesRow(
-            buckets = buckets,
-            selectedBucketId = activeBucket?.id,
-            onSelectBucket = { onSelectBucket(it) },
-            activeColor = colors.primary,
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        // Active Bag Card & App Slots
-        activeBucket?.let { bucket ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = colors.surface),
-                shape = RoundedCornerShape(22.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(18.dp)) {
-                    // Header with Rename
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = bucket.name,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                IconButton(
-                                    onClick = { onStartRename(bucket) },
-                                    modifier = Modifier.size(48.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Rename ${bucket.name}",
-                                        tint = colors.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                }
-                            }
-                            Text(
-                                text = "${bucket.appPackages.size} of ${AppBucket.MAX_APPS_PER_BUCKET} packed apps",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colors.primary,
-                            )
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Spacer(Modifier.height(8.dp))
+        Text("Your essentials", style = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-1).sp))
+        Text("Choose the apps that stay available during focus. Phone and Messages stay available.", color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge)
+        buckets.forEachIndexed { index, bucket ->
+            val selected = bucket.id == selectedBucketId
+            Column(Modifier.fillMaxWidth().glass(24.dp, selected)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        GlassArt(index, Modifier.size(64.dp))
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(bucket.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+                            Text("${bucket.appPackages.size} of ${AppBucket.MAX_APPS_PER_BUCKET} apps", color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                         }
-
-                        Button(
-                            onClick = { onOpenBucketPicker(bucket.id) },
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                horizontal = 14.dp,
-                                vertical = 6.dp,
-                            ),
-                        ) {
-                            Text("Edit Apps")
-                        }
+                        TextButton(onClick = { onStartRename(bucket) }) { Text("Rename") }
                     }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    // 6 App Slots Grid (2 rows of 3)
-                    val appList = bucket.appPackages.toList()
-                    val totalSlots = AppBucket.MAX_APPS_PER_BUCKET
-
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        for (row in 0 until (totalSlots + 2) / 3) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                for (col in 0 until 3) {
-                                    val index = row * 3 + col
-                                    if (index < totalSlots) {
-                                        val pkg = appList.getOrNull(index)
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(84.dp)
-                                                .clip(RoundedCornerShape(14.dp))
-                                                .background(
-                                                    if (pkg != null) colors.surfaceVariant else colors.surfaceVariant.copy(alpha = 0.55f),
-                                                )
-                                                .clickable { onOpenBucketPicker(bucket.id) }
-                                                .padding(6.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            if (pkg != null) {
-                                                Column(
-                                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                                    verticalArrangement = Arrangement.Center,
-                                                ) {
-                                                    AppIcon(packageName = pkg, size = 38.dp)
-                                                    Spacer(Modifier.height(4.dp))
-                                                    Text(
-                                                        text = getAppLabel(pkg),
-                                                        style = TextStyle(fontSize = 11.sp),
-                                                        color = colors.onSurface,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                        textAlign = TextAlign.Center,
-                                                    )
-                                                }
-                                            } else {
-                                                Column(
-                                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                                    verticalArrangement = Arrangement.Center,
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Add,
-                                                        contentDescription = "Add app",
-                                                        tint = colors.onSurfaceVariant.copy(alpha = 0.7f),
-                                                        modifier = Modifier.size(22.dp),
-                                                    )
-                                                    Spacer(Modifier.height(2.dp))
-                                                    Text(
-                                                        text = "Add slot",
-                                                        style = TextStyle(fontSize = 11.sp),
-                                                        color = colors.onSurfaceVariant.copy(alpha = 0.7f),
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { onOpenBucketPicker(bucket.id) }, shape = RoundedCornerShape(14.dp)) { Text("Choose apps") }
+                        TextButton(onClick = { onSelectBucket(bucket.id) }) { Text(if (selected) "Selected ✓" else "Use this") }
                     }
                 }
             }
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        // Life / Parachute Info Card (100% Free)
-        Card(
-            colors = CardDefaults.cardColors(containerColor = colors.surface),
-            shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = Color(0xFF241515),
-                    modifier = Modifier.size(44.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Favorite,
-                            contentDescription = "Life",
-                            tint = Color(0xFFFF5252),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = "1 Daily Emergency Life",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = "Allows an emergency exit once a day, resetting at midnight. 100% free with no in-app purchases or subscriptions.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+        Text("Phone and Messages remain available during a session.", color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.height(12.dp))
     }
 }
 
-// ------------------------------------------------------------ TAB 3: SCHEDULES (ROUTINES)
 @Composable
 private fun SchedulesPageTab(
     schedules: List<FocusSchedule>,
@@ -987,12 +674,12 @@ private fun AnalysisPageTab(
             .padding(20.dp),
     ) {
         Text(
-            text = "Screen Time Analysis",
+            text = "Settings",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = "Your on-device focus history, controls, and privacy.",
+            text = "Session controls and privacy",
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant,
         )
@@ -1013,9 +700,9 @@ private fun AnalysisPageTab(
         )
         Spacer(Modifier.height(10.dp))
         Card(
-            colors = CardDefaults.cardColors(containerColor = colors.surface),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
             shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().glass(20.dp),
         ) {
             Column {
                 SettingRow(
@@ -1061,13 +748,13 @@ private fun AnalysisPageTab(
         )
         Spacer(Modifier.height(10.dp))
         Card(
-            colors = CardDefaults.cardColors(containerColor = colors.surface),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
             shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().glass(20.dp),
         ) {
             Column {
                 Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
-                    Text(text = "100% Offline Architecture", style = MaterialTheme.typography.titleSmall)
+                    Text(text = "On-device storage", style = MaterialTheme.typography.titleSmall)
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = "No INTERNET permission, no trackers, and no cloud backups. All focus data stays private on your device.",

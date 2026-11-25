@@ -9,46 +9,36 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import dev.breakmode.session.Wallpaper
 
-/**
- * The app keeps its own quiet palette instead of following the system accent, so a break screen
- * looks the same on every phone. Light mode gets a softer paper palette for daytime breaks.
- */
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF8FE3C8),
+    primary = Color(0xFFA6F4CA),
     onPrimary = Color(0xFF05231A),
+    primaryContainer = Color(0xFF204C38),
+    onPrimaryContainer = Color(0xFFCDF9DC),
+    secondaryContainer = Color(0xFF284739),
+    onSecondaryContainer = Color(0xFFCAF7DC),
     secondary = Color(0xFF9FD6FF),
     onSecondary = Color(0xFF05202E),
     tertiary = Color(0xFFD9C2FF),
-    background = Color(0xFF000000),
+    background = Color(0xFF070C0A),
     onBackground = Color(0xFFF0F0F0),
-    surface = Color(0xFF121215),
+    surface = Color(0xFF111E18),
     onSurface = Color(0xFFF0F0F0),
-    surfaceVariant = Color(0xFF1A1A20),
-    onSurfaceVariant = Color(0xFFA0A0A8),
-    outline = Color(0xFF2C2C34),
+    surfaceVariant = Color(0xFF203129),
+    onSurfaceVariant = Color(0xFFB2C2B8),
+    outline = Color(0xFF536B5E),
     error = Color(0xFFFFB4AB),
-)
-
-private val LightColors = lightColorScheme(
-    primary = Color(0xFF1B6B55),
-    onPrimary = Color(0xFFFFFFFF),
-    secondary = Color(0xFF22597A),
-    onSecondary = Color(0xFFFFFFFF),
-    tertiary = Color(0xFF5A4390),
-    background = Color(0xFFF7F5F0),
-    onBackground = Color(0xFF1A1D21),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF1A1D21),
-    surfaceVariant = Color(0xFFEDEAE3),
-    onSurfaceVariant = Color(0xFF4C5560),
-    outline = Color(0xFFC9C5BC),
 )
 
 @Composable
 fun BreakModeTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors,
-        content = content,
+        colorScheme = DarkColors,
+        content = {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.material3.LocalContentColor provides DarkColors.onBackground,
+                content = content,
+            )
+        },
     )
 }
 

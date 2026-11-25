@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import dev.breakmode.session.BreakRepository
 import org.junit.After
 import org.junit.Assert.assertTrue
@@ -39,9 +40,9 @@ class MainActivityStartTest {
 
     @Test
     fun coldStartShowsTheSetupScreen() {
-        compose.onNodeWithText("FocusBro").assertIsDisplayed()
-        compose.onNodeWithText("Phone & Messages always available").assertIsDisplayed()
-        compose.onNodeWithText("SLIDE TO START").assertIsDisplayed()
+        compose.onNodeWithText("FOCUSBRO").assertIsDisplayed()
+        compose.onNodeWithText("Phone & Messages always available").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Start focusing  →").performScrollTo().assertIsDisplayed()
     }
 
     @Test

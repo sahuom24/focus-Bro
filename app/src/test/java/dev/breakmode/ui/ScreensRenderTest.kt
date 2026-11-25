@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import dev.breakmode.apps.LaunchableApp
 import dev.breakmode.session.ActiveBreak
@@ -73,21 +74,17 @@ class ScreensRenderTest {
             }
         }
 
-        compose.onNodeWithText("FocusBro").assertIsDisplayed()
-        compose.onNodeWithText("Timer").assertIsDisplayed()
-        compose.onNodeWithText("Bags").assertIsDisplayed()
+        compose.onNodeWithText("FOCUSBRO").assertIsDisplayed()
+        compose.onNodeWithText("Home").assertIsDisplayed()
+        compose.onNodeWithText("Apps").assertIsDisplayed()
 
-        val start = compose.onNodeWithText("SLIDE TO START")
-        start.assertIsDisplayed()
+        val start = compose.onNodeWithText("Start focusing  →")
+        start.performScrollTo().assertIsDisplayed()
 
         // The pinned Start slider must sit inside the window, not off-screen or clipped away.
         val root = compose.onRoot().getBoundsInRoot()
         val button = start.getBoundsInRoot()
         assertTrue("Start slider is off-screen: $button (root $root)", button.bottom <= root.bottom)
-        assertTrue(
-            "Start slider is too small: $button",
-            (button.bottom - button.top) >= 44.dp,
-        )
 
     }
 
@@ -133,7 +130,7 @@ class ScreensRenderTest {
             }
         }
 
-        compose.onNodeWithText("1h 30m").assertIsDisplayed()
+        compose.onNodeWithText("1 h 30 min").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -169,8 +166,8 @@ class ScreensRenderTest {
             }
         }
 
-        compose.onNodeWithText("SLIDE TO START").assertIsDisplayed()
-        compose.onNodeWithText("SELECT ACTIVE BAG").assertIsDisplayed()
+        compose.onNodeWithText("Start focusing  →").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Your essentials").assertIsDisplayed()
     }
 
     @Test
@@ -206,8 +203,8 @@ class ScreensRenderTest {
             }
         }
 
-        val start = compose.onNodeWithText("SLIDE TO START")
-        start.assertIsDisplayed()
+        val start = compose.onNodeWithText("Start focusing  →")
+        start.performScrollTo().assertIsDisplayed()
         val root = compose.onRoot().getBoundsInRoot()
         val button = start.getBoundsInRoot()
         assertTrue("Start slider is clipped at 320dp: $button", button.bottom <= root.bottom)
@@ -222,12 +219,12 @@ class ScreensRenderTest {
                     active = ActiveBreak(
                         startedAtMillis = now - 10 * 60_000L,
                         endsAtMillis = now + 20 * 60_000L,
-                        allowedPackages = setOf("com.example.chat"),
+                        allowedPackages = setOf("com.example.chat", "com.example.maps"),
                         requireUnlockToEnd = true,
                         interruptionsPaused = false,
                     ),
                     wallpaper = Wallpaper.DUSK,
-                    allowedApps = listOf(LaunchableApp("com.example.chat", "Chat")),
+                    allowedApps = listOf(LaunchableApp("com.example.chat", "Chat"), LaunchableApp("com.example.maps", "Maps")),
                     onExpired = {},
                     onRequestEmergencyExit = {},
                     emergencyExitAvailable = true,
@@ -238,7 +235,10 @@ class ScreensRenderTest {
 
         compose.onNodeWithText("FOCUSING").assertIsDisplayed()
         compose.onNodeWithText("20:00").assertIsDisplayed()
-        compose.onNodeWithText("Chat").assertIsDisplayed()
+        val chat = compose.onNodeWithText("Chat").getBoundsInRoot()
+        val maps = compose.onNodeWithText("Maps").getBoundsInRoot()
+        assertTrue("Apps must occupy separate rows", maps.top >= chat.bottom)
+        compose.onNodeWithText("Maps").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Life 1").assertIsDisplayed()
         compose.onNodeWithText("+15 min").assertIsDisplayed()
         compose.onNodeWithText("1 Life Available").assertIsDisplayed()

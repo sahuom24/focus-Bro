@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,9 +62,9 @@ import kotlinx.coroutines.delay
 import java.text.DateFormat
 import java.util.Date
 
-private val Mint = Color(0xFF8FE3C8)
+private val Mint = Color(0xFFA6F4CA)
 private val Paper = Color(0xFFFFFFFF)
-private val AmoledBlack = Color(0xFF000000)
+
 
 @Composable
 fun SessionScreen(
@@ -105,18 +107,15 @@ fun SessionScreen(
         allowedApps.filter { it.packageName != phonePkg && it.packageName != msgPkg }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(AmoledBlack)
+    Column(
+        modifier = modifier.fillMaxSize().studioBackdrop()
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .padding(horizontal = 20.dp, vertical = 10.dp),
     ) {
         // Top Bar: "FOCUSING" on left, "Life: 1/0" on top right
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter),
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -163,14 +162,14 @@ fun SessionScreen(
             }
         }
 
-        // Center: Circular Progress + Big Digital Countdown + Seconds Card
+        // The timer and app rows share a scroll area; exit and communication controls stay reachable.
         Column(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth(),
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(contentAlignment = Alignment.Center) {
+            Spacer(Modifier.height(4.dp))
+            Box(Modifier.glass(96.dp), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(190.dp)) {
                     val stroke = 8.dp.toPx()
                     val inset = stroke / 2f
@@ -269,49 +268,28 @@ fun SessionScreen(
                     }
                 }
             }
-        }
-
-        // Bottom Section: Allowed Apps Dock + Slide to Exit + Phone/Messages Corners
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Allowed Apps - Minimalist Text Pills (No Icons)
             if (bucketApps.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(bottom = 14.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+                Text("Available apps", modifier = Modifier.fillMaxWidth(),
+                    color = Mint, style = MaterialTheme.typography.labelLarge)
+                Column(Modifier.fillMaxWidth().glass(22.dp)) {
                     bucketApps.forEach { app ->
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFF16161A),
-                            modifier = Modifier
-                                .padding(horizontal = 4.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { openApp(context, app.packageName) },
+                        Row(
+                            Modifier.fillMaxWidth().clickable { openApp(context, app.packageName) }
+                                .heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Text(
-                                text = app.label,
-                                style = TextStyle(
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.5.sp,
-                                ),
-                                color = Paper,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
-                            )
+                            AppIcon(app.packageName, 36.dp)
+                            Text(app.label, modifier = Modifier.weight(1f), color = Paper,
+                                maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text("↗", color = Mint)
                         }
                     }
                 }
             }
-
+            Spacer(Modifier.height(4.dp))
+        }
+        Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             // Monochrome / Black+White SLIDE TO EXIT Slider (Colourless)
             SlideToAction(
                 text = "SLIDE TO EXIT",
