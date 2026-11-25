@@ -55,7 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.breakmode.session.AppBucket
 import dev.breakmode.session.FocusSchedule
-import dev.breakmode.ui.GlassArt
+import dev.breakmode.ui.BucketEmblem
 import dev.breakmode.ui.glass
 import dev.breakmode.ui.formatMinutes
 
@@ -163,7 +163,7 @@ fun RoutinesBlockItView(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    GlassArt(selectedIndex, Modifier.size(54.dp))
+                    BucketEmblem(currentSchedule.bucketId, Modifier.size(54.dp))
                     Text(currentSchedule.name, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
                 }
                 Spacer(Modifier.height(12.dp))

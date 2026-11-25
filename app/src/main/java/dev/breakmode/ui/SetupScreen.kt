@@ -413,7 +413,7 @@ private fun MainTimerTab(
             fontWeight = FontWeight.Medium, letterSpacing = (-1.6).sp)
         Column(Modifier.fillMaxWidth().glass(32.dp, active = true)) {
             Box(Modifier.fillMaxWidth().height(156.dp), contentAlignment = Alignment.Center) {
-                GlassArt(settings.buckets.indexOf(activeBucket).coerceAtLeast(0), Modifier.size(156.dp))
+                BucketEmblem(activeBucket?.id, Modifier.size(156.dp))
             }
             Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -461,12 +461,12 @@ private fun BucketsPageTab(
         Spacer(Modifier.height(8.dp))
         Text("Your essentials", style = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-1).sp))
         Text("Choose the apps that stay available during focus. Phone and Messages stay available.", color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge)
-        buckets.forEachIndexed { index, bucket ->
+        buckets.forEach { bucket ->
             val selected = bucket.id == selectedBucketId
             Column(Modifier.fillMaxWidth().glass(24.dp, selected)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        GlassArt(index, Modifier.size(64.dp))
+                        BucketEmblem(bucket.id, Modifier.size(64.dp))
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(bucket.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)

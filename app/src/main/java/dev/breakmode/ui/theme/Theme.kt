@@ -10,22 +10,22 @@ import androidx.compose.ui.graphics.Color
 import dev.breakmode.session.Wallpaper
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFA6F4CA),
-    onPrimary = Color(0xFF05231A),
-    primaryContainer = Color(0xFF204C38),
-    onPrimaryContainer = Color(0xFFCDF9DC),
-    secondaryContainer = Color(0xFF284739),
-    onSecondaryContainer = Color(0xFFCAF7DC),
+    primary = Color(0xFFB6D9FF),
+    onPrimary = Color(0xFF10283E),
+    primaryContainer = Color(0xFF29445D),
+    onPrimaryContainer = Color(0xFFDBEDFF),
+    secondaryContainer = Color(0xFF304254),
+    onSecondaryContainer = Color(0xFFDDEBFA),
     secondary = Color(0xFF9FD6FF),
     onSecondary = Color(0xFF05202E),
     tertiary = Color(0xFFD9C2FF),
-    background = Color(0xFF070C0A),
+    background = Color(0xFF0A0C10),
     onBackground = Color(0xFFF0F0F0),
-    surface = Color(0xFF111E18),
+    surface = Color(0xFF151B23),
     onSurface = Color(0xFFF0F0F0),
-    surfaceVariant = Color(0xFF203129),
-    onSurfaceVariant = Color(0xFFB2C2B8),
-    outline = Color(0xFF536B5E),
+    surfaceVariant = Color(0xFF232E3A),
+    onSurfaceVariant = Color(0xFFB8C4D1),
+    outline = Color(0xFF56677B),
     error = Color(0xFFFFB4AB),
 )
 

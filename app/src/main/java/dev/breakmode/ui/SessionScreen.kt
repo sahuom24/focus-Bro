@@ -58,11 +58,14 @@ import dev.breakmode.apps.LaunchableApp
 import dev.breakmode.session.ActiveBreak
 import dev.breakmode.session.Wallpaper
 import dev.breakmode.ui.components.SlideToAction
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
 import java.text.DateFormat
 import java.util.Date
 
-private val Mint = Color(0xFFA6F4CA)
+
 private val Paper = Color(0xFFFFFFFF)
 
 
@@ -77,25 +80,11 @@ fun SessionScreen(
     onExtend: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val accent = MaterialTheme.colorScheme.primary
     val context = LocalContext.current
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var extendsUsed by remember { mutableIntStateOf(0) }
     val maxExtends = 4
 
-    LaunchedEffect(active.endsAtMillis) {
-        while (true) {
-            now = System.currentTimeMillis()
-            if (now >= active.endsAtMillis) {
-                onExpired()
-                break
-            }
-            delay(500)
-        }
-    }
-
-    val remaining = active.remainingMillis(now)
-    val elapsedFraction = active.fractionElapsed(now)
-    val secondsLeft = ((remaining / 1000) % 60).coerceAtLeast(0)
     val endsAtLabel = remember(active.endsAtMillis) {
         DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(active.endsAtMillis))
     }
@@ -127,7 +116,7 @@ fun SessionScreen(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 4.sp,
                     ),
-                    color = Mint,
+                    color = accent,
                 )
                 Text(
                     text = "Ends at $endsAtLabel",
@@ -169,61 +158,7 @@ fun SessionScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Spacer(Modifier.height(4.dp))
-            Box(Modifier.glass(96.dp), contentAlignment = Alignment.Center) {
-                Canvas(Modifier.size(190.dp)) {
-                    val stroke = 8.dp.toPx()
-                    val inset = stroke / 2f
-                    val arcSize = Size(size.width - stroke, size.height - stroke)
-                    drawArc(
-                        color = Paper.copy(alpha = 0.08f),
-                        startAngle = -90f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        topLeft = Offset(inset, inset),
-                        size = arcSize,
-                        style = Stroke(width = stroke, cap = StrokeCap.Round),
-                    )
-                    drawArc(
-                        color = Mint,
-                        startAngle = -90f,
-                        sweepAngle = 360f * (1f - elapsedFraction),
-                        useCenter = false,
-                        topLeft = Offset(inset, inset),
-                        size = arcSize,
-                        style = Stroke(width = stroke, cap = StrokeCap.Round),
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = formatCountdown(remaining),
-                        style = TextStyle(
-                            fontSize = 38.sp,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 1.sp,
-                            fontFeatureSettings = "tnum",
-                        ),
-                        color = Paper,
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF1E1E24),
-                        modifier = Modifier.padding(top = 4.dp),
-                    ) {
-                        Text(
-                            text = String.format("%02d SEC", secondsLeft),
-                            style = TextStyle(
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 2.sp,
-                            ),
-                            color = Mint,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        )
-                    }
-                }
-            }
-
+            FocusDial(active, onExpired)
             Spacer(Modifier.height(20.dp))
 
             // +15 Min Extension Row (with BlockIt inspired extend dots)
@@ -261,7 +196,7 @@ fun SessionScreen(
                                     .size(7.dp)
                                     .clip(RoundedCornerShape(2.dp))
                                     .background(
-                                        if (i < extendsUsed) Color(0xFF44444C) else Mint,
+                                        if (i < extendsUsed) Color(0xFF44444C) else accent,
                                     ),
                             )
                         }
@@ -270,7 +205,7 @@ fun SessionScreen(
             }
             if (bucketApps.isNotEmpty()) {
                 Text("Available apps", modifier = Modifier.fillMaxWidth(),
-                    color = Mint, style = MaterialTheme.typography.labelLarge)
+                    color = accent, style = MaterialTheme.typography.labelLarge)
                 Column(Modifier.fillMaxWidth().glass(22.dp)) {
                     bucketApps.forEach { app ->
                         Row(
@@ -282,7 +217,7 @@ fun SessionScreen(
                             AppIcon(app.packageName, 36.dp)
                             Text(app.label, modifier = Modifier.weight(1f), color = Paper,
                                 maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text("↗", color = Mint)
+                            Text("↗", color = accent)
                         }
                     }
                 }
@@ -290,16 +225,9 @@ fun SessionScreen(
             Spacer(Modifier.height(4.dp))
         }
         Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            // Monochrome / Black+White SLIDE TO EXIT Slider (Colourless)
             SlideToAction(
                 text = "SLIDE TO EXIT",
-                thumbIcon = Icons.Default.Close,
                 onAction = onRequestEmergencyExit,
-                trackColor = Color(0xFF141416),
-                thumbColor = Color(0xFFE2E2E2),
-                thumbIconColor = Color(0xFF000000),
-                completedTrackColor = Color(0xFF28282E),
-                textColor = Color(0xFF888890),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 12.dp),
@@ -317,14 +245,14 @@ fun SessionScreen(
                 Surface(
                     onClick = { DefaultCommunicationApps.openPhone(context) },
                     shape = CircleShape,
-                    color = Color(0xFF162B1D),
+                    color = Color(0xFF202D3E),
                     modifier = Modifier.size(52.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Call,
                             contentDescription = "Phone",
-                            tint = Color(0xFF4CAF50),
+                            tint = Color(0xFFBADBFF),
                             modifier = Modifier.size(22.dp),
                         )
                     }
@@ -353,6 +281,84 @@ fun SessionScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FocusDial(active: ActiveBreak, onExpired: () -> Unit) {
+    val accent = MaterialTheme.colorScheme.primary
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(active.endsAtMillis, lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                now = System.currentTimeMillis()
+                val left = active.remainingMillis(now)
+                if (left == 0L) {
+                    onExpired()
+                    break
+                }
+                // Wake when the next displayed second changes, including the final partial second.
+                delay((left - 1L) % 1000L + 1L)
+            }
+        }
+    }
+
+    val remaining = active.remainingMillis(now)
+    val elapsedFraction = active.fractionElapsed(now)
+    Box(Modifier.glass(96.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(190.dp)) {
+            val stroke = 8.dp.toPx()
+            val inset = stroke / 2f
+            val arcSize = Size(size.width - stroke, size.height - stroke)
+            drawArc(
+                color = Paper.copy(alpha = 0.08f),
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = Offset(inset, inset),
+                size = arcSize,
+                style = Stroke(width = stroke, cap = StrokeCap.Round),
+            )
+            drawArc(
+                color = accent,
+                startAngle = -90f,
+                sweepAngle = 360f * (1f - elapsedFraction),
+                useCenter = false,
+                topLeft = Offset(inset, inset),
+                size = arcSize,
+                style = Stroke(width = stroke, cap = StrokeCap.Round),
+            )
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = formatCountdown(remaining),
+                style = TextStyle(
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 1.sp,
+                    fontFeatureSettings = "tnum",
+                ),
+                color = Paper,
+            )
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFF1E1E24),
+                modifier = Modifier.padding(top = 4.dp),
+            ) {
+                Text(
+                    text = "REMAINING",
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                    ),
+                    color = accent,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                )
             }
         }
     }

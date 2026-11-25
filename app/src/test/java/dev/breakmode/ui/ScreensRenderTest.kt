@@ -5,6 +5,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
@@ -269,6 +272,25 @@ class ScreensRenderTest {
         }
 
         compose.onNodeWithText("SLIDE TO EXIT").assertIsDisplayed()
+    }
+
+    @Test
+    fun exitSlideRequiresAFullGesture() {
+        var requests = 0
+        compose.setContent {
+            BreakModeTheme {
+                dev.breakmode.ui.components.SlideToAction("Slide to exit", { requests++ })
+            }
+        }
+        val slider = compose.onNodeWithText("Slide to exit")
+        slider.performTouchInput {
+            swipe(Offset(24f, centerY), Offset(width * .4f, centerY), 300)
+        }
+        compose.runOnIdle { org.junit.Assert.assertEquals(0, requests) }
+        slider.performTouchInput {
+            swipe(Offset(24f, centerY), Offset(width - 2f, centerY), 450)
+        }
+        compose.runOnIdle { org.junit.Assert.assertEquals(1, requests) }
     }
 
     @Test

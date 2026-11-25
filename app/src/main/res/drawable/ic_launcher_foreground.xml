@@ -6,7 +6,7 @@
     android:viewportHeight="108">
     <!-- A crescent moon: two circles combined with the even-odd rule. -->
     <path
-        android:fillColor="#FF8FE3C8"
+        android:fillColor="#FFB6D9FF"
         android:fillType="evenOdd"
         android:pathData="M28,54 a26,26 0 1,0 52,0 a26,26 0 1,0 -52,0 M42,49 a23,23 0 1,0 46,0 a23,23 0 1,0 -46,0" />
     <path
