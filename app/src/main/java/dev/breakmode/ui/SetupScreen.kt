@@ -785,7 +785,7 @@ private fun AnalysisPageTab(
                     Text(text = "Privacy Policy", style = MaterialTheme.typography.titleSmall)
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "View full policy online (sites.google.com/view/focusbro-privacy-policy)",
+                        text = "Read the full FocusBro privacy policy",
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.primary,
                     )

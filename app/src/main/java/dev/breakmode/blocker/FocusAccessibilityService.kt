@@ -43,6 +43,7 @@ class FocusAccessibilityService : AccessibilityService() {
         if (event == null) return
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
+        if (BreakRepository.get(applicationContext).active.value == null) return
         val packageName = event.packageName?.toString() ?: return
         val className = event.className?.toString().orEmpty()
 

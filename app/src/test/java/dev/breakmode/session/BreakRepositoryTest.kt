@@ -63,7 +63,7 @@ class BreakRepositoryTest {
     @Test
     fun startingABreakFreezesItsConfiguration() {
         repository.updateSettings {
-            it.copy(minutes = 30, allowedPackages = setOf("com.example.chat"))
+            it.copy(minutes = 30, selectedBucketId = null, allowedPackages = setOf("com.example.chat"))
         }
 
         val active = repository.start()
@@ -125,7 +125,7 @@ class BreakRepositoryTest {
 
     @Test
     fun aRunningBreakIsRestoredFromDisk() {
-        repository.updateSettings { it.copy(minutes = 25, allowedPackages = setOf("com.example.chat")) }
+        repository.updateSettings { it.copy(minutes = 25, selectedBucketId = null, allowedPackages = setOf("com.example.chat")) }
         repository.start()
 
         // Same as the process being killed and the app reopened mid-break.

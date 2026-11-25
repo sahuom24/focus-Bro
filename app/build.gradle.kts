@@ -14,14 +14,14 @@ android {
         applicationId = "com.focusbro.myapp"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.1.2"
+        versionCode = 8
+        versionName = "1.2.0"
         resourceConfigurations += listOf("en")
     }
 
     // Signing material is deliberately kept out of version control. If keystore.properties is
     // absent the release build still assembles, just unsigned, so a fresh checkout compiles.
-    val keystorePropertiesFile = rootProject.file("keystore.properties")
+    val keystorePropertiesFile = rootProject.file(providers.environmentVariable("FOCUSBRO_SIGNING_PROPERTIES").orElse("keystore.properties").get())
     val keystoreProperties = Properties().apply {
         if (keystorePropertiesFile.exists()) {
             keystorePropertiesFile.inputStream().use { load(it) }
@@ -31,7 +31,7 @@ android {
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
             create("release") {
-                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storeFile = keystorePropertiesFile.parentFile.resolve(keystoreProperties.getProperty("storeFile"))
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")

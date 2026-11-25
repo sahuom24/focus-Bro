@@ -54,7 +54,7 @@ import dev.breakmode.session.BreakNotifier
 import dev.breakmode.session.Interruptions
 import dev.breakmode.ui.theme.BreakModeTheme
 
-private const val PRIVACY_POLICY_URL = "https://sites.google.com/view/focusbro-privacy-policy"
+private const val PRIVACY_POLICY_URL = "https://github.com/sahuom24/focus-Bro/blob/4871245ccb6148846c1a714c80045acc41485932/PRIVACY_POLICY.md"
 
 class MainActivity : ComponentActivity() {
 
@@ -363,7 +363,7 @@ fun BreakModeApp(viewModel: BreakViewModel) {
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "• Reads only the active foreground app package name while a focus session is running.\n" +
+                        text = "• Checks the foreground app package and window class during focus to identify apps and allow system security prompts.\n" +
                             "• Detects when an unselected app opens and brings back your FocusBro screen.\n" +
                             "• Essential communication tools (Phone & SMS), System Settings, and uninstall dialogs always remain accessible.",
                         style = MaterialTheme.typography.bodySmall,

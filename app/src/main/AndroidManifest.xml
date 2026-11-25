@@ -8,13 +8,11 @@
       SCHEDULE_EXACT_ALARM: allows user-configured automated focus schedules to start
       down to the exact second even in deep Doze mode.
       RECEIVE_BOOT_COMPLETED: restores scheduled alarms and active breaks on reboot.
-      WAKE_LOCK: ensures alarms and receivers wake the device to trigger focus mode.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!--
       Narrow package visibility: only activities that publish a launcher entry are visible to
@@ -84,7 +82,7 @@
         <!-- Boot receiver to restore alarms on reboot or package upgrade -->
         <receiver
             android:name=".session.BootReceiver"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
