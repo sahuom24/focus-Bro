@@ -1,0 +1,22 @@
+FocusBro • Google Play submission • 1.2.0 (8)
+Package: com.focusbro.myapp
+
+Short description
+Start a focus timer and choose which apps stay within reach.
+
+Full description
+Choose a session length, pick the apps you need, and start focusing. Save different app selections for study, travel, or your usual routine. Schedule recurring sessions or start one whenever you need it. Your timer and session history stay on your device.
+
+Optional app restriction uses Android’s AccessibilityService API. During an active session, FocusBro checks the foreground app package and window class so it can recognize system prompts and bring you back to your timer when you open a restricted app. FocusBro does not read screen content or keystrokes, and does not send this information off your device. You can decline access and use the timer, or turn access off in Android Settings. Phone, messages, system settings and uninstall controls remain available.
+
+Release notes
+New ice-blue glass screens, clearer app bucket icons, and a vertical app list during focus. The countdown now pauses display updates when the app is in the background.
+
+Privacy policy URL (use in Play Console and all listing locales)
+https://github.com/sahuom24/focus-Bro/blob/4871245ccb6148846c1a714c80045acc41485932/PRIVACY_POLICY.md
+
+Accessibility declaration and reviewer demo
+FocusBro is a productivity app. Describe the optional user-configured focus restriction using the listing paragraph above. Record this build on Android: show the in-app disclosure, decline and start a timer without restrictions, then return to Settings and enable restriction via Agree & Continue and the Android service settings. Start another session and open a restricted app, show the return to FocusBro, open an allowed app, then disable the service in Android Settings. Use a review-accessible video link and test it signed out. Do not represent simulated UI screenshots as evidence of OS enforcement.
+
+Console checks before rollout
+Check the highest version code across tracks and compare the bundle certificate with the Upload key certificate under App integrity. Review the current policy status and inbox before replacing an in-review submission. Verify Data safety for the final bundle, all active listing translations, the accessibility declaration and updated video. Check any account-specific trader verification or testing requirements shown by Console. Run an internal-track install and upgrade, including the real service enable/disable flow, Settings access, early exit and scheduled sessions, before production rollout.
