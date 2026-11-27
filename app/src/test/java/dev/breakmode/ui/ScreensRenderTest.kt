@@ -227,7 +227,7 @@ class ScreensRenderTest {
                         interruptionsPaused = false,
                     ),
                     wallpaper = Wallpaper.DUSK,
-                    allowedApps = listOf(LaunchableApp("com.example.chat", "Chat"), LaunchableApp("com.example.maps", "Maps")),
+                    allowedApps = (1..6).map { LaunchableApp("com.example.app$it", "App $it") },
                     onExpired = {},
                     onRequestEmergencyExit = {},
                     emergencyExitAvailable = true,
@@ -238,10 +238,12 @@ class ScreensRenderTest {
 
         compose.onNodeWithText("FOCUSING").assertIsDisplayed()
         compose.onNodeWithText("20:00").assertIsDisplayed()
-        val chat = compose.onNodeWithText("Chat").getBoundsInRoot()
-        val maps = compose.onNodeWithText("Maps").getBoundsInRoot()
-        assertTrue("Apps must occupy separate rows", maps.top >= chat.bottom)
-        compose.onNodeWithText("Maps").performScrollTo().assertIsDisplayed()
+        for (index in 1..6) {
+            compose.onNodeWithText("App $index").assertIsDisplayed()
+        }
+        val lastApp = compose.onNodeWithText("App 6").getBoundsInRoot()
+        val exit = compose.onNodeWithText("SLIDE TO EXIT").getBoundsInRoot()
+        assertTrue("All six apps must fit above the exit control", lastApp.bottom <= exit.top)
         compose.onNodeWithText("Life 1").assertIsDisplayed()
         compose.onNodeWithText("+15 min").assertIsDisplayed()
         compose.onNodeWithText("1 Life Available").assertIsDisplayed()

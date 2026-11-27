@@ -32,7 +32,7 @@ data class FocusSchedule(
     val name: String,
     val startHour: Int = 22, // 0..23
     val startMinute: Int = 0, // 0..59
-    val durationMinutes: Int = 60, // 5..720
+    val durationMinutes: Int = 60, // minutes, including overnight routines
     val daysOfWeek: Set<Int> = setOf(1, 2, 3, 4, 5, 6, 7), // Calendar.SUNDAY(1) to Calendar.SATURDAY(7)
     val bucketId: String? = null,
     val enabled: Boolean = true,
@@ -87,7 +87,7 @@ data class BreakSettings(
     val schedules: List<FocusSchedule> = FocusSchedule.defaultRoutines(),
 ) {
     companion object {
-        const val MAX_DURATION_MINUTES = 720
+        const val MAX_DURATION_MINUTES = 16 * 60
         fun defaultBuckets(): List<AppBucket> = listOf(
             AppBucket(id = "default", name = "Default", appPackages = emptySet()),
             AppBucket(id = "study", name = "Study", appPackages = emptySet()),

@@ -342,7 +342,7 @@ class BreakRepository private constructor(context: Context) {
             Wallpaper.valueOf(prefs.getString(KEY_WALLPAPER, Wallpaper.AMOLED.name)!!)
         }.getOrDefault(Wallpaper.AMOLED)
         return BreakSettings(
-            minutes = prefs.getInt(KEY_MINUTES, 30).coerceIn(5, 720),
+            minutes = prefs.getInt(KEY_MINUTES, 30).coerceIn(5, BreakSettings.MAX_DURATION_MINUTES),
             allowedPackages = prefs.getStringSet(KEY_ALLOWED, emptySet()).orEmpty().toSet(),
             pauseInterruptions = prefs.getBoolean(KEY_PAUSE, true),
             requireUnlockToEnd = prefs.getBoolean(KEY_UNLOCK, false),

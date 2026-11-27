@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +23,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -151,16 +152,14 @@ fun SessionScreen(
             }
         }
 
-        // The timer and app rows share a scroll area; exit and communication controls stay reachable.
         Column(
-            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Spacer(Modifier.height(4.dp))
-            FocusDial(active, onExpired)
-            Spacer(Modifier.height(20.dp))
-
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                FocusDial(active, onExpired)
+            }
             // +15 Min Extension Row (with BlockIt inspired extend dots)
             Surface(
                 shape = RoundedCornerShape(16.dp),
@@ -206,19 +205,21 @@ fun SessionScreen(
             if (bucketApps.isNotEmpty()) {
                 Text("Available apps", modifier = Modifier.fillMaxWidth(),
                     color = accent, style = MaterialTheme.typography.labelLarge)
-                Column(Modifier.fillMaxWidth().glass(22.dp)) {
-                    bucketApps.forEach { app ->
-                        Row(
-                            Modifier.fillMaxWidth().clickable { openApp(context, app.packageName) }
-                                .heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            AppIcon(app.packageName, 36.dp)
-                            Text(app.label, modifier = Modifier.weight(1f), color = Paper,
-                                maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text("↗", color = accent)
+                bucketApps.chunked(3).forEach { apps ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        apps.forEach { app ->
+                            Row(
+                                Modifier.weight(1f).glass(12.dp).clickable { openApp(context, app.packageName) }
+                                    .heightIn(min = 48.dp).padding(horizontal = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                AppIcon(app.packageName, 24.dp)
+                                Text(app.label, color = Paper, style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
                         }
+                        repeat(3 - apps.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
@@ -308,8 +309,9 @@ private fun FocusDial(active: ActiveBreak, onExpired: () -> Unit) {
 
     val remaining = active.remainingMillis(now)
     val elapsedFraction = active.fractionElapsed(now)
-    Box(Modifier.glass(96.dp), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(190.dp)) {
+    BoxWithConstraints(Modifier.sizeIn(maxWidth = 190.dp, maxHeight = 190.dp).aspectRatio(1f).glass(96.dp), contentAlignment = Alignment.Center) {
+        val dialWidth = maxWidth
+        Canvas(Modifier.fillMaxSize()) {
             val stroke = 8.dp.toPx()
             val inset = stroke / 2f
             val arcSize = Size(size.width - stroke, size.height - stroke)
@@ -337,14 +339,14 @@ private fun FocusDial(active: ActiveBreak, onExpired: () -> Unit) {
             Text(
                 text = formatCountdown(remaining),
                 style = TextStyle(
-                    fontSize = 38.sp,
+                    fontSize = (dialWidth.value * 0.18f).coerceAtMost(38f).sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 1.sp,
                     fontFeatureSettings = "tnum",
                 ),
                 color = Paper,
             )
-            Surface(
+            if (dialWidth >= 96.dp) Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = Color(0xFF1E1E24),
                 modifier = Modifier.padding(top = 4.dp),

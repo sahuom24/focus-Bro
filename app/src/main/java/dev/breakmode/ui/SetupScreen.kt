@@ -60,6 +60,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -326,7 +328,7 @@ fun SetupScreen(
         )
     }
 
-    // Custom Minutes Dialog (Allows 1 to 720 minutes / 12h)
+    // Exact entry complements the drag control.
     if (showCustomMinutesDialog) {
         AlertDialog(
             onDismissRequest = { showCustomMinutesDialog = false },
@@ -334,7 +336,7 @@ fun SetupScreen(
             text = {
                 Column {
                     Text(
-                        text = "Enter desired duration in minutes (up to 720 min / 12 hours):",
+                        text = "Enter desired duration in minutes (5 min to 16 hours):",
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant,
                     )
@@ -366,7 +368,7 @@ fun SetupScreen(
                     onClick = {
                         val parsed = customMinutesInput.toIntOrNull()
                         if (parsed != null && parsed > 0) {
-                            onMinutes(parsed.coerceIn(5, 720))
+                            onMinutes(parsed.coerceIn(5, BreakSettings.MAX_DURATION_MINUTES))
                         }
                         showCustomMinutesDialog = false
                     },
@@ -418,13 +420,20 @@ private fun MainTimerTab(
             Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Duration", color = colors.onSurfaceVariant, style = MaterialTheme.typography.labelLarge)
-                Text(formatMinutes(settings.minutes), color = colors.onSurface,
+                var duration by remember(settings.minutes) { mutableIntStateOf(settings.minutes) }
+                Text(formatMinutes(duration), color = colors.onSurface,
                     style = MaterialTheme.typography.headlineLarge)
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(15, 30, 60, 120).forEach { minutes ->
-                        FilterChip(selected = settings.minutes == minutes, onClick = { onMinutes(minutes) }, label = { Text(formatMinutes(minutes)) }, shape = RoundedCornerShape(50))
-                    }
-                    FilterChip(selected = settings.minutes !in listOf(15, 30, 60, 120), onClick = onOpenCustom, label = { Text("Custom") }, shape = RoundedCornerShape(50))
+                Slider(
+                    value = duration.toFloat(),
+                    onValueChange = { duration = it.roundToInt() },
+                    onValueChangeFinished = { onMinutes(duration) },
+                    valueRange = 5f..BreakSettings.MAX_DURATION_MINUTES.toFloat(),
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Focus duration in minutes" },
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("5 min")
+                    TextButton(onClick = onOpenCustom) { Text("Exact time") }
+                    Text("16 h")
                 }
             }
         }

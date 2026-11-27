@@ -1,5 +1,7 @@
 package dev.breakmode.ui.components
 
+import androidx.compose.material3.Slider
+import kotlin.math.roundToInt
 import android.app.TimePickerDialog
 import android.text.format.DateFormat
 import androidx.compose.foundation.Canvas
@@ -41,6 +43,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -101,46 +105,10 @@ fun RoutinesBlockItView(
 
     val activeBucketName = buckets.firstOrNull { it.id == currentSchedule.bucketId }?.name ?: "All apps"
 
-    val openStartTimePicker = {
-        TimePickerDialog(
-            context,
-            { _, h, m ->
-                val newStartTotal = h * 60 + m
-                val currentEndTotal = endHour * 60 + endMinute
-                val diff = currentEndTotal - newStartTotal
-                val newDuration = if (diff > 0) diff else (24 * 60 + diff)
-                onUpdateSchedule(
-                    currentSchedule.copy(
-                        startHour = h,
-                        startMinute = m,
-                        durationMinutes = newDuration.coerceIn(5, 720),
-                    ),
-                )
-            },
-            currentSchedule.startHour,
-            currentSchedule.startMinute,
-            DateFormat.is24HourFormat(context),
-        ).show()
-    }
-
-    val openEndTimePicker = {
-        TimePickerDialog(
-            context,
-            { _, h, m ->
-                val currentStartTotal = currentSchedule.startHour * 60 + currentSchedule.startMinute
-                val newEndTotal = h * 60 + m
-                val diff = newEndTotal - currentStartTotal
-                val newDuration = if (diff > 0) diff else (24 * 60 + diff)
-                onUpdateSchedule(
-                    currentSchedule.copy(
-                        durationMinutes = newDuration.coerceIn(5, 720),
-                    ),
-                )
-            },
-            endHour,
-            endMinute,
-            DateFormat.is24HourFormat(context),
-        ).show()
+    val startMinutes = currentSchedule.startHour * 60 + currentSchedule.startMinute
+    fun updateTime(start: Int, end: Int) {
+        val duration = ((end - start + 1440) % 1440).coerceAtLeast(5)
+        onUpdateSchedule(currentSchedule.copy(startHour = start / 60, startMinute = start % 60, durationMinutes = duration))
     }
 
     Column(
@@ -346,20 +314,18 @@ fun RoutinesBlockItView(
             // START CARD
             RulerTimeCard(
                 title = "START",
-                timeText = startStr,
-                isActive = currentSchedule.enabled,
-                accentColor = colors.primary,
-                onClick = openStartTimePicker,
+                minutes = startMinutes,
+                routineId = currentSchedule.id,
+                onCommit = { updateTime(it, endTotalMins) },
                 modifier = Modifier.weight(1f),
             )
 
             // END CARD
             RulerTimeCard(
                 title = "END",
-                timeText = endStr,
-                isActive = currentSchedule.enabled,
-                accentColor = colors.primary,
-                onClick = openEndTimePicker,
+                minutes = endTotalMins,
+                routineId = currentSchedule.id,
+                onCommit = { updateTime(startMinutes, it) },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -457,69 +423,27 @@ fun RoutinesBlockItView(
 @Composable
 private fun RulerTimeCard(
     title: String,
-    timeText: String,
-    isActive: Boolean,
-    accentColor: Color,
-    onClick: () -> Unit,
+    minutes: Int,
+    routineId: String,
+    onCommit: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = MaterialTheme.colorScheme
-    val tickInactive = colors.outline.copy(alpha = 0.45f)
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = colors.surface),
-        shape = RoundedCornerShape(20.dp),
-        modifier = modifier.height(108.dp),
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Background vertical tick lines (ruler pattern)
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val totalLines = 25
-                val step = size.width / (totalLines + 1)
-                for (i in 1..totalLines) {
-                    val x = i * step
-                    val isCenter = i == totalLines / 2 + 1
-                    val lineHeight = if (isCenter) size.height * 0.45f else (if (i % 3 == 0) size.height * 0.25f else size.height * 0.14f)
-                    val lineColor = if (isCenter && isActive) accentColor else tickInactive
-                    val stroke = if (isCenter) 2.dp.toPx() else 1.dp.toPx()
-                    drawLine(
-                        color = lineColor,
-                        start = Offset(x, (size.height - lineHeight) / 2f),
-                        end = Offset(x, (size.height + lineHeight) / 2f),
-                        strokeWidth = stroke,
-                    )
-                }
-            }
-
-            // Foreground center time digits
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = timeText,
-                    style = TextStyle(
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        fontFeatureSettings = "tnum",
-                    ),
-                    color = if (isActive) accentColor else colors.onSurface,
-                )
-                Text(
-                    text = title,
-                    style = TextStyle(
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp,
-                    ),
-                    color = colors.onSurfaceVariant,
-                )
-            }
+    val context = LocalContext.current
+    var draft by remember(routineId, minutes) { mutableIntStateOf(minutes) }
+    Column(modifier.glass(18.dp).padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(title, style = MaterialTheme.typography.labelSmall)
+        TextButton(onClick = {
+            TimePickerDialog(context, { _, h, m -> onCommit(h * 60 + m) },
+                minutes / 60, minutes % 60, DateFormat.is24HourFormat(context)).show()
+        }) {
+            Text(String.format("%02d:%02d", draft / 60, draft % 60), style = MaterialTheme.typography.titleLarge)
         }
+        Slider(
+            value = draft.toFloat(),
+            onValueChange = { draft = it.roundToInt() },
+            onValueChangeFinished = { onCommit(draft) },
+            valueRange = 0f..1439f,
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "$title time in minutes after midnight" },
+        )
     }
 }
